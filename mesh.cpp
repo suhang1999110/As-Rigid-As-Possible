@@ -126,7 +126,6 @@ void Mesh::AddFace(int v1, int v2, int v3) {
 // it's only for loading obj model, you do not need to understand it
 bool Mesh::LoadObjFile(const char *filename) {
     if (filename==NULL || strlen(filename)==0) return false;
-
     ifstream ifs(filename);
     if (ifs.fail()) return false;
     Clear();
