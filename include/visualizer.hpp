@@ -370,7 +370,7 @@ void KeyboardFunc(unsigned char ch, int x, int y) {
         case 'd':
         case 'D':
             cout << "Deforming the mesh" << endl;
-            mesh.Deform(10);
+            mesh.Deform(5, UNIFORM);
             break;
     }
     glutPostRedisplay();

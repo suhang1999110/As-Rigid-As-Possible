@@ -161,13 +161,13 @@ bool Mesh::LoadObjFile(const char *filename) {
     ifs.close();
 
     size_t i;
-    Vector3d box = this->MaxCoord() - this->MinCoord();
-    for (i=0; i<vList.size(); i++) vList[i]->SetPosition(vList[i]->Position() / box.X());
-
-    Vector3d tot;
-    for (i=0; i<vList.size(); i++) tot += vList[i]->Position();
-    Vector3d avg = tot / vList.size();
-    for (i=0; i<vList.size(); i++) vList[i]->SetPosition(vList[i]->Position() - avg);
+//    Vector3d box = this->MaxCoord() - this->MinCoord();
+//    for (i=0; i<vList.size(); i++) vList[i]->SetPosition(vList[i]->Position() / box.X());
+//
+//    Vector3d tot;
+//    for (i=0; i<vList.size(); i++) tot += vList[i]->Position();
+//    Vector3d avg = tot / vList.size();
+//    for (i=0; i<vList.size(); i++) vList[i]->SetPosition(vList[i]->Position() - avg);
 
     HEdgeList list;
     for (i=0; i<bheList.size(); i++)
@@ -198,22 +198,33 @@ bool Mesh::LoadObjFile(const char *filename) {
     return true;
 }
 
-void Mesh::SetConstraints(const char* anchor_path) {
-    this->SetAnchors(anchor_path);
-
-    for(int i = 0; i < vList.size(); i++){
-        if(anchors.find(i) == anchors.end()){
-            handle_idx.push_back(i);
-        }
+const vector<Vertex*> Mesh::GetNeighbors(Vertex* v) {
+    OneRingVertex ring(v);
+    Vertex *curr = nullptr;
+    vector<Vertex*> neighbors;
+    while(curr = ring.NextVertex()){
+        neighbors.push_back(curr);
     }
-    handle_num = handle_idx.size();
+    return neighbors;
 }
 
-void Mesh::SetConstraints(const char *anchor_path, const char *handle_path) {
+void Mesh::SetConstraints(const char* anchor_path) {
+    for_each(vList.begin(), vList.end(), [](Vertex *v){v->SetType(UNSPECIFIED);});
     this->SetAnchors(anchor_path);
-    this->SetHandles(handle_path);
+    this->SetHandles();
 }
 
+void Mesh::SetConstraints(AnchorPair _anchors) {
+    for_each(vList.begin(), vList.end(), [](Vertex *v){v->SetType(UNSPECIFIED);});
+    this->SetAnchors(forward<AnchorPair>(_anchors));
+    this->SetHandles();
+}
+
+void Mesh::SetConstraints(AnchorPair _anchors, vector<int> _handle_idx) {
+    for_each(vList.begin(), vList.end(), [](Vertex *v){v->SetType(UNSPECIFIED);});
+    this->SetAnchors(forward<AnchorPair>(_anchors));
+    this->SetHandles(forward<vector<int>>(_handle_idx));
+}
 
 void Mesh::SetAnchors(const char *anchor_path) {
     assert(anchor_path != nullptr && strlen(anchor_path) > 0);
@@ -227,29 +238,77 @@ void Mesh::SetAnchors(const char *anchor_path) {
         int idx;
         double x, y, z;
         iss >> idx >> x >> y >> z;
-        auto ret = anchors.emplace(idx, Eigen::Matrix<double,3,1>(x,y,z));
+        Eigen::Matrix<double,3,1> new_point(x,y,z);
+        auto ret = anchors.emplace(idx, new_point);
         assert(ret.second);
+        p_prime.col(idx) = new_point;
+        vList[idx]->SetType(ANCHOR);
     }while(!ifs.eof());
     ifs.close();
 }
 
-void Mesh::SetHandles(const char *handle_path) {
-    // TODO
+void Mesh::SetAnchors(AnchorPair _anchors) {
+    for(auto _anchor: _anchors){
+        int idx = _anchor.first;
+        Point new_point = _anchor.second;
+        auto ret = anchors.emplace(idx, new_point);
+        assert(ret.second);
+        p_prime.col(idx) = new_point;
+        vList[idx]->SetType(ANCHOR);
+    }
 }
 
+void Mesh::SetHandles() {
+    assert(anchors.size() > 0);
+    for(int i = 0; i < vList.size(); i++){
+        if(vList[i]->Type() == UNSPECIFIED){
+            vList[i]->SetType(HANDLE);
+        }
+    }
+    handle_num = vList.size() - anchors.size();
+}
 
-void Mesh::InitWeights(){
+void Mesh::SetHandles(vector<int> handle_idx) {
+    handle_num = handle_idx.size();
+    for(int i: handle_idx){
+        vList[i]->SetType(HANDLE);
+    }
+}
+
+void Mesh::InitWeights(WEIGHT_TYPE weight_type) {
+    switch(weight_type){
+        case UNIFORM:
+            this->InitUniformWeights();
+            break;
+        case COTANGENT:
+            this->InitCotangentWeights();
+            break;
+    }
+}
+
+void Mesh::InitUniformWeights() {
     vector<Eigen::Triplet<double>> weight_list;
     weight_list.reserve(fList.size()*3);
 
     for(int i = 0; i < vList.size(); i++){
-        OneRingVertex ring(vList[i]);
-        /* Get neighbor vertices  */
-        vector<Vertex*> neighbors;
-        Vertex *temp = nullptr;
-        while((temp = ring.NextVertex())) {
-            neighbors.push_back(temp);
+        vector<Vertex*> neighbors = this->GetNeighbors(vList[i]);
+        for(auto v: neighbors){
+            int j = v->Index();
+            weight_list.emplace_back(Eigen::Triplet<double>(i,j,1.0));
+            weight_list.emplace_back(Eigen::Triplet<double>(j,i,1.0));
         }
+    }
+    weights.resize(vList.size(), vList.size());
+    weights.setZero();
+    weights.setFromTriplets(weight_list.begin(), weight_list.end());
+}
+
+void Mesh::InitCotangentWeights(){
+    vector<Eigen::Triplet<double>> weight_list;
+    weight_list.reserve(fList.size()*3);
+
+    for(int i = 0; i < vList.size(); i++){
+        vector<Vertex*> neighbors = this->GetNeighbors(vList[i]);
 
         /* Compute weight for each pair */
         Vector3d v = vList[i]->Position();
@@ -292,6 +351,18 @@ void Mesh::InitRotations() {
     rotations.resize(vList.size(), Eigen::Matrix3d::Identity());
 }
 
+void Mesh::InitAnchors() {
+    for(int i = 0; i < vList.size(); i++){
+        if(vList[i]->Type() == UNSPECIFIED){
+            vList[i]->SetType(ANCHOR);
+            auto pos = vList[i]->Position();
+            Point new_point(pos.X(), pos.Y(), pos.Z());
+            auto ret = anchors.emplace(i, new_point);
+            assert(ret.second);
+        }
+    }
+}
+
 void Mesh::InitHandleMapping() {
     handleMap.resize(vList.size());
     int index = 0;
@@ -310,37 +381,86 @@ void Mesh::BuildLinearSystem() {
     L.resize(handle_num, handle_num);
     L.reserve(Eigen::VectorXi::Constant(handle_num, 7));
     L.setZero();
-    b.resize(3, handle_num);
-    b.setZero();
+    b_init.resize(3, handle_num);
+    b_init.setZero();
 
     vector<Eigen::Triplet<double>> triplets;
     triplets.reserve(7 * handle_num);
 
-    for(int row_idx = 0; row_idx < weights.outerSize(); row_idx++){
-        int handle_idx1 = handleMap[row_idx];
+    for(int i = 0; i < vList.size(); i++){
+        assert(i == vList[i]->Index());
+        int handle_idx1 = handleMap[i];
         if(handle_idx1 == -1){
             continue;
         }
-        for(Eigen::SparseMatrix<double>::InnerIterator col_it(weights, row_idx); col_it; ++col_it){
-            int col_idx = col_it.col();
-            double w = col_it.value();
-            int handle_idx2 = handleMap[col_idx];
+        /* Get neighbor vertices */
+        vector<Vertex*> neighbors = this->GetNeighbors(vList[i]);
+
+        for(auto curr: neighbors){
+            int j = curr->Index();
+            double w = weights.coeff(i, j);
+            int handle_idx2 = handleMap[j];
             if(handle_idx2 == -1){
-                b.col(handle_idx1) += w * anchors[col_idx];
+                b_init.col(handle_idx1) += w * anchors[j];
             }
             else{
                 triplets.emplace_back(Eigen::Triplet<double>(handle_idx1, handle_idx2, -w));
             }
             triplets.emplace_back(Eigen::Triplet<double>(handle_idx1, handle_idx1, w));
         }
-        break;
     }
     L.setFromTriplets(triplets.begin(), triplets.end());
     solver.compute(L);
     assert(solver.info() == Eigen::Success);
 }
 
+void Mesh::EstimateRotations() {
+    for(int i = 0; i < vList.size(); i++){
+        auto pi = p.col(i);
+        auto ppi = p_prime.col(i);
+        /* Compute covariance matrix */
+        vector<Vertex*> neighbors = this->GetNeighbors(vList[i]);
+        Eigen::Matrix3d covariance;
+        covariance.setZero();
+        for(auto curr: neighbors){
+            int j = curr->Index();
+            double w = weights.coeff(i, j);
+            auto pj = p.col(j);
+            auto ppj = p_prime.col(j);
+            covariance += w * (pi - pj) * ((ppi - ppj).transpose());
+        }
+        /* SVD Decomposition */
+        Eigen::JacobiSVD<Eigen::Matrix3d> svd(covariance, Eigen::ComputeFullU | Eigen::ComputeFullV);
+        Eigen::Matrix3d Ut = svd.matrixU().transpose();
+        Eigen::Matrix3d V = svd.matrixV();
+
+        /* Get rotation matrix */
+        Eigen::Matrix3d I;
+        I.setIdentity();
+        I(2,2) = (V * Ut).determinant();
+        rotations[i] = (V * I * Ut);
+        assert(abs(rotations[i].determinant()-1) <= 1e-10);
+    }
+}
+
 void Mesh::SolveLinearSystem() {
+    b = b_init;
+    for(int i = 0; i < vList.size(); i++){
+        int handle_idx = handleMap[i];
+        if(handle_idx == -1){
+            continue;
+        }
+        vector<Vertex*> neighbors = this->GetNeighbors(vList[i]);
+        for(auto curr: neighbors){
+            int j = curr->Index();
+            double w = weights.coeff(i, j);
+            Eigen::Matrix3d R = rotations[i] + rotations[j];
+            Eigen::Matrix<double, 3, 1> point = R * (p.col(i) - p.col(j)) * w * 0.5;
+            b.col(handle_idx) += point;
+        }
+    }
+
+    /* Solve one dimension at one time */
     Eigen::Matrix<double, Eigen::Dynamic, 1> x;
     for(int i = 0; i < 3; i++){
         x = solver.solve(b.row(i).transpose());
@@ -355,47 +475,6 @@ void Mesh::SolveLinearSystem() {
     }
 }
 
-void Mesh::EstimateRotations() {
-    for(int row_idx = 0; row_idx < weights.outerSize(); row_idx++){
-        auto pi = p.col(row_idx);
-        auto ppi = p_prime.col(row_idx);
-        /* Compute covariance matrix */
-        Eigen::Matrix3d covariance = Eigen::Matrix3d::Zero();
-        for(Eigen::SparseMatrix<double>::InnerIterator col_it(weights, row_idx); col_it; ++col_it){
-            int col_idx = col_it.col();
-            double w = col_it.value();
-            auto pj = p.col(col_idx);
-            auto ppj = p_prime.col(col_idx);
-            covariance += w * (pi - pj) * (ppi - ppj).transpose();
-        }
-        /* SVD Decomposition */
-        Eigen::JacobiSVD<Eigen::Matrix3d> svd(covariance, Eigen::ComputeFullU | Eigen::ComputeFullV);
-        Eigen::Matrix3d V = svd.matrixV();
-        Eigen::Matrix3d Ut = svd.matrixU().transpose();
-
-        /* Get rotation matrix */
-        Eigen::Matrix3d I = Eigen::Matrix3d::Identity(3,3);
-        I(2,2) = (V * Ut).determinant();
-        rotations[row_idx] = (V * I * Ut);
-    }
-}
-
-void Mesh::EstimatePositions() {
-    for(int row_idx = 0; row_idx < weights.outerSize(); row_idx++){
-        int handle_idx = handleMap[row_idx];
-        if(handle_idx == -1){
-            continue;
-        }
-        for(Eigen::SparseMatrix<double>::InnerIterator col_it(weights, row_idx); col_it; ++col_it){
-            int col_idx = col_it.col();
-            double w = col_it.value();
-            Eigen::Matrix3d R = rotations[row_idx] + rotations[col_idx];
-            Eigen::Matrix<double, 3, 1> point = R * (p.col(row_idx) - p.col(col_idx)) * w * 0.5;
-            b.col(handle_idx) += point;
-        }
-    }
-}
-
 void Mesh::UpdateVertices() {
     for(int i = 0; i < vList.size(); i++){
         auto pos = p_prime.col(i);
@@ -403,17 +482,17 @@ void Mesh::UpdateVertices() {
     }
 }
 
-void Mesh::Deform(int num_iterations){
+void Mesh::Deform(int num_iterations, WEIGHT_TYPE weight_type = UNIFORM){
     /* Build linear system */
     InitRotations();
-    InitWeights();
+    InitWeights(weight_type);
+    InitAnchors();
     InitHandleMapping();
     BuildLinearSystem();
 
     /* Interleaved iterations */
     for(int i = 0; i < num_iterations; i++){
         EstimateRotations();
-        EstimatePositions();
         SolveLinearSystem();
     }
 

@@ -23,9 +23,16 @@ class FaceEnumeration;
 typedef std::vector<HEdge*> HEdgeList;
 typedef std::vector<Vertex*> VertexList;
 typedef std::vector<Face*> FaceList;
+typedef Eigen::Matrix<double, 3, 1> Point;
+typedef std::vector<std::pair<int, Point>> AnchorPair;
 
 // enums
-
+enum WEIGHT_TYPE{
+    UNIFORM, COTANGENT
+};
+enum VERTEX_TYPE{
+    HANDLE, ANCHOR, UNSPECIFIED
+};
 
 // other helper functions
 inline void SetPrevNext(HEdge *e1, HEdge *e2);
@@ -111,6 +118,7 @@ private:
     int index;			// index in the Mesh::vList, DO NOT UPDATE IT
     int flag;           // 0 for unselected, 1 for selected
     bool valid;
+    VERTEX_TYPE vertex_type;
 public:
     vector<HEdge*> adjHEdges; // for reading object only, do not use it in other place
 
@@ -133,6 +141,8 @@ public:
     int SetIndex(int index) { return Vertex::index = index; }
 
     int SetFlag(int value) { return Vertex::flag = value; }
+    VERTEX_TYPE Type(){ return vertex_type; }
+    void SetType(VERTEX_TYPE _type) { vertex_type = _type; }
 
     bool IsValid() const { return valid; }
     bool SetValid(bool b) { return valid = b; }
@@ -192,11 +202,10 @@ public:
     Eigen::Matrix<int, 3, Eigen::Dynamic> faces;
     Eigen::SparseMatrix<double> weights;
     Eigen::SparseMatrix<double> L;
-    Eigen::Matrix<double, 3, Eigen::Dynamic> b;
+    Eigen::Matrix<double, 3, Eigen::Dynamic> b, b_init;
     Eigen::SimplicialLDLT<Eigen::SparseMatrix<double>> solver;
     vector<Eigen::Matrix3d> rotations;
-    unordered_map<int, Eigen::Matrix<double,3,1>> anchors;
-    vector<int> handle_idx;
+    unordered_map<int, Point> anchors;
     vector<int> handleMap;
     int handle_num;
 
@@ -212,7 +221,7 @@ public:
 
     // functions for loading obj files,
     // you DO NOT need to understand and use them
-    void AddVertex(Vertex *v) { vList.push_back(v); }
+    void AddVertex(Vertex *v) { vList.push_back(v); v->SetType(UNSPECIFIED); }
     void AddFace(int v1, int v2, int v3);
     void Clear() {
         size_t i;
@@ -225,18 +234,24 @@ public:
         vList.clear();
         fList.clear();
     }
+    const vector<Vertex*> GetNeighbors(Vertex*);
 
     // Deform functions
-    void Deform(int num_iterations);
+    void Deform(int num_iterations, WEIGHT_TYPE);
     void SetConstraints(const char*);
-    void SetConstraints(const char*, const char*);
+    void SetConstraints(AnchorPair);
+    void SetConstraints(AnchorPair, vector<int>);
     void SetAnchors(const char*);
-    void SetHandles(const char*);
+    void SetAnchors(AnchorPair);
+    void SetHandles(vector<int>);
+    void SetHandles();
     void InitRotations();
-    void InitWeights();
+    void InitWeights(WEIGHT_TYPE);
+    void InitAnchors();
+    void InitUniformWeights();
+    void InitCotangentWeights();
     void InitHandleMapping();
     void EstimateRotations();
-    void EstimatePositions();
     void BuildLinearSystem();
     void SolveLinearSystem();
     void UpdateVertices();
