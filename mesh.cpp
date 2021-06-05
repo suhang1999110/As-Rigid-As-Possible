@@ -99,7 +99,7 @@ void Mesh::AddFace(int v1, int v2, int v3) {
     v[1]->adjHEdges.push_back(bhe[0]);
     v[2]->adjHEdges.push_back(bhe[2]);
 
-    // mearge boundary if in need
+    // merge boundary if in need
     for (i=0; i<3; i++) {
         Vertex *start = bhe[i]->Start();
         Vertex *end   = bhe[i]->End();
@@ -198,9 +198,26 @@ bool Mesh::LoadObjFile(const char *filename) {
     return true;
 }
 
-void Mesh::SetAnchors(const char* filename) {
-    assert(filename != nullptr && strlen(filename) > 0);
-    ifstream ifs(filename);
+void Mesh::SetConstraints(const char* anchor_path) {
+    this->SetAnchors(anchor_path);
+
+    for(int i = 0; i < vList.size(); i++){
+        if(anchors.find(i) == anchors.end()){
+            handle_idx.push_back(i);
+        }
+    }
+    handle_num = handle_idx.size();
+}
+
+void Mesh::SetConstraints(const char *anchor_path, const char *handle_path) {
+    this->SetAnchors(anchor_path);
+    this->SetHandles(handle_path);
+}
+
+
+void Mesh::SetAnchors(const char *anchor_path) {
+    assert(anchor_path != nullptr && strlen(anchor_path) > 0);
+    ifstream ifs(anchor_path);
     assert(ifs.fail() == false);
 
     char buf[1024];
@@ -215,6 +232,11 @@ void Mesh::SetAnchors(const char* filename) {
     }while(!ifs.eof());
     ifs.close();
 }
+
+void Mesh::SetHandles(const char *handle_path) {
+    // TODO
+}
+
 
 void Mesh::InitWeights(){
     vector<Eigen::Triplet<double>> weight_list;
@@ -301,8 +323,8 @@ void Mesh::BuildLinearSystem() {
         }
         for(Eigen::SparseMatrix<double>::InnerIterator col_it(weights, row_idx); col_it; ++col_it){
             int col_idx = col_it.col();
-            int handle_idx2 = handleMap[col_idx];
             double w = col_it.value();
+            int handle_idx2 = handleMap[col_idx];
             if(handle_idx2 == -1){
                 b.col(handle_idx1) += w * anchors[col_idx];
             }
@@ -311,9 +333,11 @@ void Mesh::BuildLinearSystem() {
             }
             triplets.emplace_back(Eigen::Triplet<double>(handle_idx1, handle_idx1, w));
         }
+        break;
     }
     L.setFromTriplets(triplets.begin(), triplets.end());
     solver.compute(L);
+    assert(solver.info() == Eigen::Success);
 }
 
 void Mesh::SolveLinearSystem() {

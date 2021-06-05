@@ -461,7 +461,7 @@ void SelectVertexByPoint()
     {
         currSelectedVertex = selectedIndex;
         vList[selectedIndex]->SetFlag(1);
-        cout<<"index: "<<vList[selectedIndex]->Index();
+        cout<<"index: "<<vList[selectedIndex]->Index()<<" ";
         cout<<"point: "<<vList[selectedIndex]->Position()<<endl;
     }
 

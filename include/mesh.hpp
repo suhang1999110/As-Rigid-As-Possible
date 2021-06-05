@@ -196,6 +196,7 @@ public:
     Eigen::SimplicialLDLT<Eigen::SparseMatrix<double>> solver;
     vector<Eigen::Matrix3d> rotations;
     unordered_map<int, Eigen::Matrix<double,3,1>> anchors;
+    vector<int> handle_idx;
     vector<int> handleMap;
     int handle_num;
 
@@ -227,7 +228,10 @@ public:
 
     // Deform functions
     void Deform(int num_iterations);
+    void SetConstraints(const char*);
+    void SetConstraints(const char*, const char*);
     void SetAnchors(const char*);
+    void SetHandles(const char*);
     void InitRotations();
     void InitWeights();
     void InitHandleMapping();
