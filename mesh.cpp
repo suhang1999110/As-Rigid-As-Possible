@@ -208,22 +208,37 @@ const vector<Vertex*> Mesh::GetNeighbors(Vertex* v) {
     return neighbors;
 }
 
+/* Set anchors from file, the others are handles by default */
 void Mesh::SetConstraints(const char* anchor_path) {
     for_each(vList.begin(), vList.end(), [](Vertex *v){v->SetType(UNSPECIFIED);});
     this->SetAnchors(anchor_path);
     this->SetHandles();
 }
 
+/* Set anchors from GUI, the others are handles by default */
 void Mesh::SetConstraints(AnchorPair _anchors) {
     for_each(vList.begin(), vList.end(), [](Vertex *v){v->SetType(UNSPECIFIED);});
     this->SetAnchors(forward<AnchorPair>(_anchors));
     this->SetHandles();
 }
 
+/* Set anchors and handles from GUI, the others are anchors by default */
 void Mesh::SetConstraints(AnchorPair _anchors, vector<int> _handle_idx) {
     for_each(vList.begin(), vList.end(), [](Vertex *v){v->SetType(UNSPECIFIED);});
     this->SetAnchors(forward<AnchorPair>(_anchors));
     this->SetHandles(forward<vector<int>>(_handle_idx));
+}
+
+/* Set all boundary vertices to anchors */
+void Mesh::SetBoundaryAnchors() {
+    for(auto v: vList){
+        if(v->IsBoundary()){
+            Point point(v->Position().X(), v->Position().Y(), v->Position().Z());
+            auto ret = anchors.emplace(v->Index(), point);
+            assert(ret.second);
+            v->SetType(ANCHOR);
+        }
+    }
 }
 
 void Mesh::SetAnchors(const char *anchor_path) {
@@ -238,7 +253,7 @@ void Mesh::SetAnchors(const char *anchor_path) {
         int idx;
         double x, y, z;
         iss >> idx >> x >> y >> z;
-        Eigen::Matrix<double,3,1> new_point(x,y,z);
+        Point new_point(x,y,z);
         auto ret = anchors.emplace(idx, new_point);
         assert(ret.second);
         p_prime.col(idx) = new_point;

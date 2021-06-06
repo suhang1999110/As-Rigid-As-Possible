@@ -241,6 +241,7 @@ public:
     void SetConstraints(const char*);
     void SetConstraints(AnchorPair);
     void SetConstraints(AnchorPair, vector<int>);
+    void SetBoundaryAnchors();
     void SetAnchors(const char*);
     void SetAnchors(AnchorPair);
     void SetHandles(vector<int>);
