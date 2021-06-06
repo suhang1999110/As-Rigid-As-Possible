@@ -170,7 +170,12 @@ public:
     // TODO write down a set special function for one single point
         // change keyboard a h, use this function
         // check special has been set or not
-    // TODO cancel the symbol one pick
+
+
+    // Extend the boundary
+        // Capital letter
+        // Will write down all newly-setup points
+        // Will not change already setup points special value
 
     // find neighbors (for UI)
     vector<int> FindNeighbors(int special) {
