@@ -336,8 +336,8 @@ void DrawSelectedVertices() {
     size_t i;
     for (i = 0; i < vList.size(); i++) {
         if (vList[i]->Flag() == 1) glColor3f(0.8, 0.0, 0.0); // Mouse Selected Point 
-        else if (vList[i]->Special() == 1) glColor3f(0.0, 0.0, 1.0); // Anchor Point
-        else if (vList[i]->Special() == 2) glColor3f(0.3, 1.0, 0.0); // Handle Point
+        else if (vList[i]->Type() == ANCHOR) glColor3f(0.0, 0.0, 1.0); // Anchor Point
+        else if (vList[i]->Type() == HANDLE) glColor3f(0.3, 1.0, 0.0); // Handle Point
         else glColor3f(1.0, 1.0, 1.0);
         glVertex3dv(vList[i]->Position().ToArray());
     }
@@ -366,7 +366,7 @@ void KeyboardFunc(unsigned char ch, int x, int y) {
                 newly_added_anchor_indices.emplace_back(currSelectedVertex);
 
                 mesh.Vertices()[currSelectedVertex]->SetFlag(0);
-                mesh.Vertices()[currSelectedVertex]->SetSpecial(1);
+                mesh.Vertices()[currSelectedVertex]->SetType(ANCHOR);
             }
             break;
         case 'A':   // Extend a group of neighboring anchor points
@@ -378,9 +378,9 @@ void KeyboardFunc(unsigned char ch, int x, int y) {
                     OneRingVertex ring(mesh.Vertices()[idx]);
                     Vertex *curr_neighbor = NULL;
                     while ( curr_neighbor = ring.NextVertex() ) {
-                        if (curr_neighbor->Special() == 0) {
+                        if (curr_neighbor->Type() == UNSPECIFIED) {
                             curr_neighbor->SetFlag(0);
-                            curr_neighbor->SetSpecial(1);
+                            curr_neighbor->SetType(ANCHOR);
                             anchor_indices.emplace_back(curr_neighbor->Index());
                             newly_added_anchor_indices.emplace_back(curr_neighbor->Index());
                         }
@@ -392,22 +392,22 @@ void KeyboardFunc(unsigned char ch, int x, int y) {
             if (currSelectedVertex != -1) {
                 newly_added_anchor_indices.clear();
                 newly_added_handle_indices.clear();
-                if (mesh.Vertices()[currSelectedVertex]->Special() == 1)
+                if (mesh.Vertices()[currSelectedVertex]->Type() == ANCHOR)
                     anchor_indices.erase(remove(anchor_indices.begin(), anchor_indices.end(), currSelectedVertex), anchor_indices.end());
-                else if (mesh.Vertices()[currSelectedVertex]->Special() == 2)
+                else if (mesh.Vertices()[currSelectedVertex]->Type() == HANDLE)
                     handle_indices.erase(remove(handle_indices.begin(), handle_indices.end(), currSelectedVertex), handle_indices.end());
                 mesh.Vertices()[currSelectedVertex]->SetFlag(0);
-                mesh.Vertices()[currSelectedVertex]->SetSpecial(0);
+                mesh.Vertices()[currSelectedVertex]->SetType(UNSPECIFIED);
             }
             break;
-        case 'C': // Go back to the beginning
+        case 'C': // Go back to the beginning.
             anchor_indices.clear();
             handle_indices.clear();
             newly_added_anchor_indices.clear();
             newly_added_handle_indices.clear();
             for (auto vertex: mesh.Vertices()) {
                 vertex->SetFlag(0);
-                vertex->SetSpecial(0);
+                vertex->SetType(UNSPECIFIED);
             }
             break;
         case 'h':   // Pick one handle point
@@ -418,7 +418,7 @@ void KeyboardFunc(unsigned char ch, int x, int y) {
                 newly_added_handle_indices.emplace_back(currSelectedVertex);
 
                 mesh.Vertices()[currSelectedVertex]->SetFlag(0);
-                mesh.Vertices()[currSelectedVertex]->SetSpecial(2);
+                mesh.Vertices()[currSelectedVertex]->SetType(HANDLE);
             }
             break;
         case 'H':   // Extend a group of neighboring handle points
@@ -430,9 +430,9 @@ void KeyboardFunc(unsigned char ch, int x, int y) {
                     OneRingVertex ring(mesh.Vertices()[idx]);
                     Vertex *curr_neighbor = NULL;
                     while ( curr_neighbor = ring.NextVertex() ) {
-                        if (curr_neighbor->Special() == 0) {
+                        if (curr_neighbor->Type() == UNSPECIFIED) {
                             curr_neighbor->SetFlag(0);
-                            curr_neighbor->SetSpecial(2);
+                            curr_neighbor->SetType(HANDLE);
                             handle_indices.emplace_back(curr_neighbor->Index());
                             newly_added_handle_indices.emplace_back(curr_neighbor->Index());
                         }
