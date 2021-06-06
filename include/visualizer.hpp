@@ -388,16 +388,26 @@ void KeyboardFunc(unsigned char ch, int x, int y) {
                 }
             }
             break;
-        case 'c':
-        case 'C': // Cancel the picked anchor point or the handle point
+        case 'c': // Cancel the picked anchor point or the handle point
             if (currSelectedVertex != -1) {
-                
+                newly_added_anchor_indices.clear();
+                newly_added_handle_indices.clear();
                 if (mesh.Vertices()[currSelectedVertex]->Special() == 1)
                     anchor_indices.erase(remove(anchor_indices.begin(), anchor_indices.end(), currSelectedVertex), anchor_indices.end());
                 else if (mesh.Vertices()[currSelectedVertex]->Special() == 2)
                     handle_indices.erase(remove(handle_indices.begin(), handle_indices.end(), currSelectedVertex), handle_indices.end());
                 mesh.Vertices()[currSelectedVertex]->SetFlag(0);
                 mesh.Vertices()[currSelectedVertex]->SetSpecial(0);
+            }
+            break;
+        case 'C': // Go back to the beginning
+            anchor_indices.clear();
+            handle_indices.clear();
+            newly_added_anchor_indices.clear();
+            newly_added_handle_indices.clear();
+            for (auto vertex: mesh.Vertices()) {
+                vertex->SetFlag(0);
+                vertex->SetSpecial(0);
             }
             break;
         case 'h':   // Pick one handle point
