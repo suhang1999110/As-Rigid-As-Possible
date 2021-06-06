@@ -388,16 +388,18 @@ void KeyboardFunc(unsigned char ch, int x, int y) {
                 }
             }
             break;
-        // case 'c':
-        // case 'C': // Cancel the picked anchor point or the handle point // TODO LATER
-        //     if (currSelectedVertex != -1) {
-        //         mesh.Vertices()[currSelectedVertex]->SetFlag(0);
-        //         mesh.Vertices()[currSelectedVertex]->SetSpecial(0);
-        //         // Remove the picked point from previous list.
-        //         // What about we use a vector to store all anchor points' / handle points' indices
+        case 'c':
+        case 'C': // Cancel the picked anchor point or the handle point
+            if (currSelectedVertex != -1) {
                 
-        //     }
-        //     break;
+                if (mesh.Vertices()[currSelectedVertex]->Special() == 1)
+                    anchor_indices.erase(remove(anchor_indices.begin(), anchor_indices.end(), currSelectedVertex), anchor_indices.end());
+                else if (mesh.Vertices()[currSelectedVertex]->Special() == 2)
+                    handle_indices.erase(remove(handle_indices.begin(), handle_indices.end(), currSelectedVertex), handle_indices.end());
+                mesh.Vertices()[currSelectedVertex]->SetFlag(0);
+                mesh.Vertices()[currSelectedVertex]->SetSpecial(0);
+            }
+            break;
         case 'h':   // Pick one handle point
             if (currSelectedVertex != -1) {
                 handle_indices.emplace_back(currSelectedVertex);
