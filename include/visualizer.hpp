@@ -12,7 +12,8 @@ enum EnumDisplayMode { WIREFRAME, HIDDENLINE, FLATSHADED, SMOOTHSHADED, COLORSMO
 enum Mode
 {
     Viewing,
-    Selection
+    Selection,
+    DRAGGING
 };
 Mode currentMode = Viewing;
 
@@ -345,6 +346,13 @@ void DrawSelectedVertices() {
     glEnd();
 }
 
+void MoveAnchors(Vector3d shift) {
+    for (int idx: grouped_anchor_indices) {
+        Vector3d pos = mesh.Vertices()[idx]->Position();
+        mesh.Vertices()[idx]->SetPosition( pos + shift );
+    }
+}
+
 // GLUT keyboard callback function
 void KeyboardFunc(unsigned char ch, int x, int y) {
     switch (ch) {
@@ -356,11 +364,12 @@ void KeyboardFunc(unsigned char ch, int x, int y) {
             currentMode = Selection;
             cout << "Selection mode" << endl;
             break;
-        // case 'r':
-        //     cout << "The picked point's index is " << currSelectedVertex << ".\n";
-        //     break;
+        case '3':   // key '3'
+            currentMode = DRAGGING;
+            cout << "Dragging mode" << endl;
+            break;
         case 'a':   // Pick one anchor point
-            if (currSelectedVertex != -1) {
+            if (currentMode == Selection && currSelectedVertex != -1) {
                 anchor_indices.emplace_back(currSelectedVertex);
                 grouped_anchor_indices.clear();
                 grouped_anchor_indices.emplace_back(currSelectedVertex);
@@ -373,7 +382,7 @@ void KeyboardFunc(unsigned char ch, int x, int y) {
             }
             break;
         case 'A':   // Extend a group of neighboring anchor points
-            if (currSelectedVertex != -1) {
+            if (currentMode == Selection && currSelectedVertex != -1) {
                 vector<int> iterated_list = newly_added_anchor_indices;
                 newly_added_anchor_indices.clear();
                 
@@ -393,7 +402,7 @@ void KeyboardFunc(unsigned char ch, int x, int y) {
             }
             break;
         case 'c': // Cancel the picked anchor point or the handle point
-            if (currSelectedVertex != -1) {
+            if (currentMode == Selection && currSelectedVertex != -1) {
                 grouped_anchor_indices.clear();
                 newly_added_anchor_indices.clear();
                 newly_added_handle_indices.clear();
@@ -406,18 +415,20 @@ void KeyboardFunc(unsigned char ch, int x, int y) {
             }
             break;
         case 'C': // Go back to the beginning.
-            anchor_indices.clear();
-            handle_indices.clear();
-            grouped_anchor_indices.clear();
-            newly_added_anchor_indices.clear();
-            newly_added_handle_indices.clear();
-            for (auto vertex: mesh.Vertices()) {
-                vertex->SetFlag(0);
-                vertex->SetType(UNSPECIFIED);
+            if (currentMode == Selection) {
+                anchor_indices.clear();
+                handle_indices.clear();
+                grouped_anchor_indices.clear();
+                newly_added_anchor_indices.clear();
+                newly_added_handle_indices.clear();
+                for (auto vertex: mesh.Vertices()) {
+                    vertex->SetFlag(0);
+                    vertex->SetType(UNSPECIFIED);
+                }
             }
             break;
         case 'h':   // Pick one handle point
-            if (currSelectedVertex != -1) {
+            if (currentMode == Selection && currSelectedVertex != -1) {
                 handle_indices.emplace_back(currSelectedVertex);
                 grouped_anchor_indices.clear();
                 newly_added_anchor_indices.clear();
@@ -429,7 +440,7 @@ void KeyboardFunc(unsigned char ch, int x, int y) {
             }
             break;
         case 'H':   // Extend a group of neighboring handle points
-            if (currSelectedVertex != -1) {
+            if (currentMode == Selection && currSelectedVertex != -1) {
                 vector<int> iterated_list = newly_added_handle_indices;
                 newly_added_handle_indices.clear();
                 
@@ -450,12 +461,14 @@ void KeyboardFunc(unsigned char ch, int x, int y) {
         case 27:
             exit(0);
             break;
-        case 'd':
-        case 'D':
+        case '4':
             cout << "Deforming the mesh" << endl;
 //            mesh.SetConstraints();
             mesh.Deform(5, UNIFORM);
             break;
+        // case 'r':
+        //     cout << "The picked point's index is " << currSelectedVertex << ".\n";
+        //     break;
     }
     glutPostRedisplay();
 }
