@@ -322,31 +322,18 @@ void DrawColorSmoothShaded() {
 
 
 // draw the selected ROI vertices on the mesh
-void DrawSelectedVertices()
-{
+void DrawSelectedVertices() {
     VertexList vList = mesh.Vertices();
     glColor3f(1.0, 0.0, 0.0);
     glPointSize(5.0);
     glBegin(GL_POINTS);
     size_t i;
-    for (i=0; i<vList.size(); i++)
-    {
-        if (vList[i]->Flag())
-        {
-            switch (vList[i]->Flag() % 3)
-            {
-                case 0: // handle vertices
-                    glColor3f(1.0, 0.3, 0.3);
-                    break;
-                case 1:
-                    glColor3f(1.0, 0.0, 0.0);
-                    break;
-                case 2:
-                    glColor3f(0.3, 0.3, 1.0);
-                    break;
-            }
-            glVertex3dv(vList[i]->Position().ToArray());
-        }
+    for (i = 0; i < vList.size(); i++) {
+        if (vList[i]->Flag() == 1) glColor3f(0.8, 0.0, 0.0); // Mouse Selected Point 
+        else if (vList[i]->Special() == 1) glColor3f(0.0, 0.0, 1.0); // Anchor Point
+        else if (vList[i]->Special() == 2) glColor3f(0.3, 1.0, 0.0); // Handle Point
+        else glColor3f(1.0, 1.0, 1.0);
+        glVertex3dv(vList[i]->Position().ToArray());
     }
     glEnd();
 }
@@ -363,6 +350,32 @@ void KeyboardFunc(unsigned char ch, int x, int y) {
         case '2':	// key '2'
             currentMode = Selection;
             cout << "Selection mode" << endl;
+            break;
+        case 'a':   // Pick one anchor point
+            if (currSelectedVertex != -1) {
+                mesh.Vertices()[currSelectedVertex]->SetFlag(0);
+                mesh.Vertices()[currSelectedVertex]->SetSpecial(1);
+                // TODO setup anchor.
+            }
+            break;
+        case 'A':   // Pick a group of anchor points
+            if (currSelectedVertex != -1) {
+                vector<int> selected_vertices = mesh.Vertices()[currSelectedVertex]->FindNeighbors(1);
+                // TODO setup anchor.
+            }
+            break;
+        case 'h':   // Pick one handle point
+            if (currSelectedVertex != -1) {
+                mesh.Vertices()[currSelectedVertex]->SetFlag(0);
+                mesh.Vertices()[currSelectedVertex]->SetSpecial(2);
+                // TODO setup handle.
+            }
+            break;
+        case 'H':   // Pick a group of anchor points
+            if (currSelectedVertex != -1) {
+                vector<int> selected_vertices = mesh.Vertices()[currSelectedVertex]->FindNeighbors(2);
+                // TODO setup handle.
+            }
             break;
         case 27:
             exit(0);
@@ -461,8 +474,8 @@ void SelectVertexByPoint()
     {
         currSelectedVertex = selectedIndex;
         vList[selectedIndex]->SetFlag(1);
-        cout<<"index: "<<vList[selectedIndex]->Index()<<" ";
-        cout<<"point: "<<vList[selectedIndex]->Position()<<endl;
+        // cout<<"index: "<<vList[selectedIndex]->Index()<<" ";
+        // cout<<"point: "<<vList[selectedIndex]->Position()<<endl;
     }
 
 }

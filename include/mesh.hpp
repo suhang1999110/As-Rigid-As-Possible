@@ -117,13 +117,14 @@ private:
     HEdge *he;			// one of half edge starts with this vertex
     int index;			// index in the Mesh::vList, DO NOT UPDATE IT
     int flag;           // 0 for unselected, 1 for selected
+    int special_pt;     // 0 for not special, 1 for anchor point, 2 for handle point
     bool valid;
     VERTEX_TYPE vertex_type;
 public:
     vector<HEdge*> adjHEdges; // for reading object only, do not use it in other place
 
     // constructors
-    Vertex() : he(NULL), flag(0), valid(true) { }
+    Vertex() : he(NULL), flag(0), special_pt(0), valid(true) { }
     Vertex(const Vector3d & v) : he(NULL), position(v), flag(0), valid(true) { }
     Vertex(double x, double y, double z) : he(NULL), position(x,y,z), flag(0), valid(true) { }
 
@@ -134,6 +135,7 @@ public:
     HEdge * HalfEdge() const { return he; }
     int Index() const { return index; }
     int Flag() const { return flag; }
+    int Special() const { return special_pt; }
     const Vector3d & SetPosition(const Vector3d & p) { return position = p; }
     const Vector3d & SetNormal(const Vector3d & n) { return normal = n; }
     const Vector3d & SetColor(const Vector3d & c) { return color = c; }
@@ -143,6 +145,7 @@ public:
     int SetFlag(int value) { return Vertex::flag = value; }
     VERTEX_TYPE Type(){ return vertex_type; }
     void SetType(VERTEX_TYPE _type) { vertex_type = _type; }
+    int SetSpecial(int value) { return Vertex::special_pt = value; }
 
     bool IsValid() const { return valid; }
     bool SetValid(bool b) { return valid = b; }
@@ -162,6 +165,25 @@ public:
         Vertex *curr = NULL;
         while (curr=ring.NextVertex()) count++;
         return count;
+    }
+
+    // TODO write down a set special function for one single point
+        // change keyboard a h, use this function
+        // check special has been set or not
+    // TODO cancel the symbol one pick
+
+    // find neighbors (for UI)
+    vector<int> FindNeighbors(int special) {
+        flag = 0;
+        special_pt = special;
+        vector<int> neighbors = { index };
+        OneRingVertex ring(this);
+        Vertex *curr = NULL;
+        while ( curr = ring.NextVertex() ) {
+            curr->SetSpecial(special) ;
+            neighbors.emplace_back( curr->Index() );
+        }
+        return neighbors;
     }
 };
 
