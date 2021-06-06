@@ -34,7 +34,6 @@ double g_fov = 45.0;
 Vector3d g_center;
 double g_sdepth;
 double drag_start_x = 0, drag_start_y = 0;
-Eigen::Vector3d shiftVec = Eigen::Vector3d::Zero();
 Mesh mesh;	// our mesh
 
 // UI variables
@@ -45,6 +44,7 @@ vector<int> newly_added_anchor_indices;
 vector<int> newly_added_handle_indices;
 
 // functions
+void MoveAnchors(Vector3d);
 void SetBoundaryBox(const Vector3d & bmin, const Vector3d & bmax);
 void InitGL();
 void InitMenu();
@@ -64,6 +64,7 @@ void MouseFunc(int button, int state, int x, int y);
 void MotionFunc(int x, int y);
 void SelectVertexByPoint();
 void DeleteSelectedVertex(int vertex);
+Eigen::Vector3d unproject(int x, int y);
 
 void SetBoundaryBox(const Vector3d & bmin, const Vector3d & bmax) {
     double PI = 3.14159265358979323846;
@@ -485,7 +486,7 @@ void KeyboardFunc(unsigned char ch, int x, int y) {
             break;
         case '4':
             cout << "Deforming the mesh" << endl;
-//            mesh.SetConstraints();
+            mesh.SetConstraints(anchor_indices, handle_indices);
             mesh.Deform(5, static_cast<WEIGHT_TYPE>(weight_type));
             break;
         // case 'r':
@@ -532,6 +533,10 @@ void MouseFunc(int button, int state, int x, int y) {
         if(leftUp){
             cout<<"start: "<<drag_start_x<<" "<<drag_start_y<<endl;
             cout<<"end: "<<lastX<<" "<<lastY<<endl;
+            auto start = unproject(drag_start_x, drag_start_y);
+            auto end = unproject(lastX, lastY);
+            auto shiftVec = end - start;
+            MoveAnchors(Vector3d(shiftVec(0), shiftVec(1), shiftVec(2)));
         }
     }
 
@@ -539,7 +544,7 @@ void MouseFunc(int button, int state, int x, int y) {
 
 // GLUT mouse motion callback function
 void MotionFunc(int x, int y) {
-    if (leftDown)
+    if (leftDown && currentMode != Dragging)
         if(!shiftDown) { // rotate
             sphi += (double)(x - lastX) / 4.0;
             stheta += (double)(lastY - y) / 4.0;
@@ -605,6 +610,17 @@ void InitAnchorList(){
             grouped_anchor_indices.push_back(v->Index());
         }
     }
+}
+
+Eigen::Vector3d unproject(int x, int y){
+    GLint viewport[4];
+    GLdouble modelview[16], projection[16];
+    glGetDoublev(GL_MODELVIEW_MATRIX, modelview);
+    glGetDoublev(GL_PROJECTION_MATRIX, projection);
+    glGetIntegerv(GL_VIEWPORT, viewport);
+    GLdouble worldX, worldY, worldZ;
+    gluUnProject(x, viewport[3]-y, 0, modelview, projection, viewport, &worldX, &worldY, &worldZ);
+    return Eigen::Vector3d(worldX, worldY, worldZ);
 }
 
 #endif

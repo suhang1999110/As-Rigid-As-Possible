@@ -240,12 +240,13 @@ public:
     void Deform(int num_iterations, WEIGHT_TYPE);
     void SetConstraints(const char*);
     void SetConstraints(AnchorPair);
-    void SetConstraints(AnchorPair, vector<int>);
+    void SetConstraints(vector<int>, vector<int>);
     void SetBoundaryAnchors();
     void SetAnchors(const char*);
     void SetAnchors(AnchorPair);
-    void SetHandles(vector<int>);
+    void SetAnchors(vector<int>);
     void SetHandles();
+    void SetHandles(vector<int>);
     void InitRotations();
     void InitWeights(WEIGHT_TYPE);
     void InitAnchors();
