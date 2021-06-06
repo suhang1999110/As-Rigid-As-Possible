@@ -345,6 +345,13 @@ void DrawSelectedVertices() {
     glEnd();
 }
 
+void MoveAnchors(Vector3d shift) {
+    for (int idx: grouped_anchor_indices) {
+        Vector3d pos = mesh.Vertices()[idx]->Position();
+        mesh.Vertices()[idx]->SetPosition( pos + shift );
+    }
+}
+
 // GLUT keyboard callback function
 void KeyboardFunc(unsigned char ch, int x, int y) {
     switch (ch) {
