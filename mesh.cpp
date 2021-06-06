@@ -254,8 +254,7 @@ void Mesh::SetAnchors(const char *anchor_path) {
         double x, y, z;
         iss >> idx >> x >> y >> z;
         Point new_point(x,y,z);
-        auto ret = anchors.emplace(idx, new_point);
-        assert(ret.second);
+        anchors[idx] = new_point;
         p_prime.col(idx) = new_point;
         vList[idx]->SetType(ANCHOR);
     }while(!ifs.eof());
@@ -266,8 +265,7 @@ void Mesh::SetAnchors(AnchorPair _anchors) {
     for(auto _anchor: _anchors){
         int idx = _anchor.first;
         Point new_point = _anchor.second;
-        auto ret = anchors.emplace(idx, new_point);
-        assert(ret.second);
+        anchors[idx] = new_point;
         p_prime.col(idx) = new_point;
         vList[idx]->SetType(ANCHOR);
     }
@@ -372,8 +370,7 @@ void Mesh::InitAnchors() {
             vList[i]->SetType(ANCHOR);
             auto pos = vList[i]->Position();
             Point new_point(pos.X(), pos.Y(), pos.Z());
-            auto ret = anchors.emplace(i, new_point);
-            assert(ret.second);
+            anchors[i] = new_point;
         }
     }
 }
