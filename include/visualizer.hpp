@@ -33,6 +33,12 @@ Vector3d g_center;
 double g_sdepth;
 Mesh mesh;	// our mesh
 
+// UI variables
+vector<int> anchor_indices;
+vector<int> handle_indices;
+vector<int> newly_added_anchor_indices;
+vector<int> newly_added_handle_indices;
+
 // functions
 void SetBoundaryBox(const Vector3d & bmin, const Vector3d & bmax);
 void InitGL();
@@ -338,8 +344,6 @@ void DrawSelectedVertices() {
     glEnd();
 }
 
-
-
 // GLUT keyboard callback function
 void KeyboardFunc(unsigned char ch, int x, int y) {
     switch (ch) {
@@ -351,30 +355,77 @@ void KeyboardFunc(unsigned char ch, int x, int y) {
             currentMode = Selection;
             cout << "Selection mode" << endl;
             break;
+        // case 'r':
+        //     cout << "The picked point's index is " << currSelectedVertex << ".\n";
+        //     break;
         case 'a':   // Pick one anchor point
             if (currSelectedVertex != -1) {
+                anchor_indices.emplace_back(currSelectedVertex);
+                newly_added_anchor_indices.clear();
+                newly_added_handle_indices.clear();
+                newly_added_anchor_indices.emplace_back(currSelectedVertex);
+
                 mesh.Vertices()[currSelectedVertex]->SetFlag(0);
                 mesh.Vertices()[currSelectedVertex]->SetSpecial(1);
-                // TODO setup anchor.
             }
             break;
-        case 'A':   // Pick a group of anchor points
+        case 'A':   // Extend a group of neighboring anchor points
             if (currSelectedVertex != -1) {
-                vector<int> selected_vertices = mesh.Vertices()[currSelectedVertex]->FindNeighbors(1);
-                // TODO setup anchor.
+                vector<int> iterated_list = newly_added_anchor_indices;
+                newly_added_anchor_indices.clear();
+                
+                for (int idx: iterated_list) {
+                    OneRingVertex ring(mesh.Vertices()[idx]);
+                    Vertex *curr_neighbor = NULL;
+                    while ( curr_neighbor = ring.NextVertex() ) {
+                        if (curr_neighbor->Special() == 0) {
+                            curr_neighbor->SetFlag(0);
+                            curr_neighbor->SetSpecial(1);
+                            anchor_indices.emplace_back(curr_neighbor->Index());
+                            newly_added_anchor_indices.emplace_back(curr_neighbor->Index());
+                        }
+                    }
+                }
             }
             break;
+        // case 'c':
+        // case 'C': // Cancel the picked anchor point or the handle point // TODO LATER
+        //     if (currSelectedVertex != -1) {
+        //         mesh.Vertices()[currSelectedVertex]->SetFlag(0);
+        //         mesh.Vertices()[currSelectedVertex]->SetSpecial(0);
+        //         // Remove the picked point from previous list.
+        //         // What about we use a vector to store all anchor points' / handle points' indices
+                
+        //     }
+        //     break;
         case 'h':   // Pick one handle point
             if (currSelectedVertex != -1) {
+                handle_indices.emplace_back(currSelectedVertex);
+                newly_added_anchor_indices.clear();
+                newly_added_handle_indices.clear();
+                newly_added_handle_indices.emplace_back(currSelectedVertex);
+
                 mesh.Vertices()[currSelectedVertex]->SetFlag(0);
                 mesh.Vertices()[currSelectedVertex]->SetSpecial(2);
-                // TODO setup handle.
             }
             break;
-        case 'H':   // Pick a group of anchor points
+        case 'H':   // Extend a group of neighboring handle points
             if (currSelectedVertex != -1) {
-                vector<int> selected_vertices = mesh.Vertices()[currSelectedVertex]->FindNeighbors(2);
-                // TODO setup handle.
+                vector<int> iterated_list = newly_added_handle_indices;
+                newly_added_handle_indices.clear();
+                
+                for (int idx: iterated_list) {
+                    OneRingVertex ring(mesh.Vertices()[idx]);
+                    Vertex *curr_neighbor = NULL;
+                    while ( curr_neighbor = ring.NextVertex() ) {
+                        if (curr_neighbor->Special() == 0) {
+                            curr_neighbor->SetFlag(0);
+                            curr_neighbor->SetSpecial(2);
+                            handle_indices.emplace_back(curr_neighbor->Index());
+                            newly_added_handle_indices.emplace_back(curr_neighbor->Index());
+                        }
+                    }
+                }
             }
             break;
         case 27:

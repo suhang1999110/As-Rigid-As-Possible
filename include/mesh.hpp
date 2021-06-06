@@ -125,8 +125,8 @@ public:
 
     // constructors
     Vertex() : he(NULL), flag(0), special_pt(0), valid(true) { }
-    Vertex(const Vector3d & v) : he(NULL), position(v), flag(0), valid(true) { }
-    Vertex(double x, double y, double z) : he(NULL), position(x,y,z), flag(0), valid(true) { }
+    Vertex(const Vector3d & v) : he(NULL), position(v), flag(0), special_pt(0), valid(true) { }
+    Vertex(double x, double y, double z) : he(NULL), position(x,y,z), flag(0), special_pt(0), valid(true) { }
 
     // access functions
     const Vector3d & Position() const { return position; }
@@ -165,30 +165,6 @@ public:
         Vertex *curr = NULL;
         while (curr=ring.NextVertex()) count++;
         return count;
-    }
-
-    // TODO write down a set special function for one single point
-        // change keyboard a h, use this function
-        // check special has been set or not
-
-
-    // Extend the boundary
-        // Capital letter
-        // Will write down all newly-setup points
-        // Will not change already setup points special value
-
-    // find neighbors (for UI)
-    vector<int> FindNeighbors(int special) {
-        flag = 0;
-        special_pt = special;
-        vector<int> neighbors = { index };
-        OneRingVertex ring(this);
-        Vertex *curr = NULL;
-        while ( curr = ring.NextVertex() ) {
-            curr->SetSpecial(special) ;
-            neighbors.emplace_back( curr->Index() );
-        }
-        return neighbors;
     }
 };
 
