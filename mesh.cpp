@@ -494,7 +494,7 @@ void Mesh::UpdateVertices() {
     }
 }
 
-void Mesh::Deform(int num_iterations, WEIGHT_TYPE weight_type = UNIFORM){
+void Mesh::Deform(int num_iterations, WEIGHT_TYPE weight_type){
     /* Build linear system */
     InitRotations();
     InitWeights(weight_type);

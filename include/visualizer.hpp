@@ -13,25 +13,28 @@ enum Mode
 {
     Viewing,
     Selection,
-    DRAGGING
+    Dragging
 };
 Mode currentMode = Viewing;
+int weight_type = UNIFORM;
 
 
 // variables
 int displayMode = FLATSHADED;	// current display mode
-int mainMenu, displayMenu;		// glut menu handlers
+int mainMenu, displayMenu, weightMenu;		// glut menu handlers
 int winWidth, winHeight;		// window width and height
 double winAspect;				// winWidth / winHeight;
 int lastX, lastY;				// last mouse motion position
-int currSelectedVertex = -1;         // current selected vertex
-bool leftDown, middleDown, middleUp, shiftDown;		// mouse down and shift down flags
+int currSelectedVertex = -1;    // current selected vertex
+bool leftDown, middleDown, middleUp, shiftDown, leftUp;		// mouse down and shift down flags
 double sphi = 90.0, stheta = 45.0, sdepth = 10;	// for simple trackball
 double xpan = 0.0, ypan = 0.0;				// for simple trackball
 double zNear = 1.0, zFar = 100.0;
 double g_fov = 45.0;
 Vector3d g_center;
 double g_sdepth;
+double drag_start_x = 0, drag_start_y = 0;
+Eigen::Vector3d shiftVec = Eigen::Vector3d::Zero();
 Mesh mesh;	// our mesh
 
 // UI variables
@@ -107,8 +110,13 @@ void InitMenu() {
     glutAddMenuEntry("Smooth Shaded", SMOOTHSHADED);
     glutAddMenuEntry("Color Smooth Shaded", COLORSMOOTHSHADED);
 
+    weightMenu = glutCreateMenu(MenuCallback);
+    glutAddMenuEntry("Uniform", UNIFORM);
+    glutAddMenuEntry("Cotangent", COTANGENT);
+
     mainMenu = glutCreateMenu(MenuCallback);
     glutAddSubMenu("Display", displayMenu);
+    glutAddSubMenu("Weight", weightMenu);
     glutAddMenuEntry("Exit", 99);
     glutAttachMenu(GLUT_RIGHT_BUTTON);
 }
@@ -171,13 +179,27 @@ void InitGeometry() {
 
 // GLUT menu callback function
 void MenuCallback(int value) {
-    switch (value) {
-        case 99: exit(0); break;
-        default:
+    switch (glutGetMenu()) {
+        case 1:
             displayMode = value;
             glutPostRedisplay();
             break;
+        case 2:
+            weight_type = value;
+            glutPostRedisplay();
+            break;
+        case 3:
+            exit(0);
+            break;
     }
+
+//    switch (value) {
+//        case 99: exit(0); break;
+//        default:
+//            displayMode = value;
+//            glutPostRedisplay();
+//            break;
+//    }
 }
 
 // GLUT reshape callback function
@@ -365,7 +387,7 @@ void KeyboardFunc(unsigned char ch, int x, int y) {
             cout << "Selection mode" << endl;
             break;
         case '3':   // key '3'
-            currentMode = DRAGGING;
+            currentMode = Dragging;
             cout << "Dragging mode" << endl;
             break;
         case 'a':   // Pick one anchor point
@@ -464,7 +486,7 @@ void KeyboardFunc(unsigned char ch, int x, int y) {
         case '4':
             cout << "Deforming the mesh" << endl;
 //            mesh.SetConstraints();
-            mesh.Deform(5, UNIFORM);
+            mesh.Deform(5, static_cast<WEIGHT_TYPE>(weight_type));
             break;
         // case 'r':
         //     cout << "The picked point's index is " << currSelectedVertex << ".\n";
@@ -479,6 +501,7 @@ void MouseFunc(int button, int state, int x, int y) {
     lastX = x;
     lastY = y;
     leftDown = (button == GLUT_LEFT_BUTTON) && (state == GLUT_DOWN);
+    leftUp = (button == GLUT_LEFT_BUTTON) && (state == GLUT_UP);
     middleDown = (button == GLUT_MIDDLE_BUTTON) && (state == GLUT_DOWN);
     middleUp = (button == GLUT_MIDDLE_BUTTON) && (state == GLUT_UP);
     shiftDown = (glutGetModifiers() & GLUT_ACTIVE_SHIFT);
@@ -501,6 +524,17 @@ void MouseFunc(int button, int state, int x, int y) {
         lastX = lastY = 0;
         glutPostRedisplay();
     }
+    if(currentMode == Dragging) {
+        if(leftDown){
+            drag_start_x = x;
+            drag_start_y = y;
+        }
+        if(leftUp){
+            cout<<"start: "<<drag_start_x<<" "<<drag_start_y<<endl;
+            cout<<"end: "<<lastX<<" "<<lastY<<endl;
+        }
+    }
+
 }
 
 // GLUT mouse motion callback function
