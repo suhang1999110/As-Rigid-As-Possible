@@ -36,6 +36,8 @@ Mesh mesh;	// our mesh
 // UI variables
 vector<int> anchor_indices;
 vector<int> handle_indices;
+vector<int> grouped_anchor_indices;
+vector<int> grouped_handle_indices;
 vector<int> newly_added_anchor_indices;
 vector<int> newly_added_handle_indices;
 
@@ -361,6 +363,9 @@ void KeyboardFunc(unsigned char ch, int x, int y) {
         case 'a':   // Pick one anchor point
             if (currSelectedVertex != -1) {
                 anchor_indices.emplace_back(currSelectedVertex);
+                grouped_anchor_indices.clear();
+                grouped_handle_indices.clear();
+                grouped_anchor_indices.emplace_back(currSelectedVertex);
                 newly_added_anchor_indices.clear();
                 newly_added_handle_indices.clear();
                 newly_added_anchor_indices.emplace_back(currSelectedVertex);
@@ -382,6 +387,7 @@ void KeyboardFunc(unsigned char ch, int x, int y) {
                             curr_neighbor->SetFlag(0);
                             curr_neighbor->SetType(ANCHOR);
                             anchor_indices.emplace_back(curr_neighbor->Index());
+                            grouped_anchor_indices.emplace_back(curr_neighbor->Index());
                             newly_added_anchor_indices.emplace_back(curr_neighbor->Index());
                         }
                     }
@@ -390,6 +396,8 @@ void KeyboardFunc(unsigned char ch, int x, int y) {
             break;
         case 'c': // Cancel the picked anchor point or the handle point
             if (currSelectedVertex != -1) {
+                grouped_anchor_indices.clear();
+                grouped_handle_indices.clear();
                 newly_added_anchor_indices.clear();
                 newly_added_handle_indices.clear();
                 if (mesh.Vertices()[currSelectedVertex]->Type() == ANCHOR)
@@ -403,6 +411,8 @@ void KeyboardFunc(unsigned char ch, int x, int y) {
         case 'C': // Go back to the beginning.
             anchor_indices.clear();
             handle_indices.clear();
+            grouped_anchor_indices.clear();
+            grouped_handle_indices.clear();
             newly_added_anchor_indices.clear();
             newly_added_handle_indices.clear();
             for (auto vertex: mesh.Vertices()) {
@@ -413,6 +423,9 @@ void KeyboardFunc(unsigned char ch, int x, int y) {
         case 'h':   // Pick one handle point
             if (currSelectedVertex != -1) {
                 handle_indices.emplace_back(currSelectedVertex);
+                grouped_anchor_indices.clear();
+                grouped_handle_indices.clear();
+                grouped_handle_indices.emplace_back(currSelectedVertex);
                 newly_added_anchor_indices.clear();
                 newly_added_handle_indices.clear();
                 newly_added_handle_indices.emplace_back(currSelectedVertex);
@@ -434,6 +447,7 @@ void KeyboardFunc(unsigned char ch, int x, int y) {
                             curr_neighbor->SetFlag(0);
                             curr_neighbor->SetType(HANDLE);
                             handle_indices.emplace_back(curr_neighbor->Index());
+                            grouped_handle_indices.emplace_back(curr_neighbor->Index());
                             newly_added_handle_indices.emplace_back(curr_neighbor->Index());
                         }
                     }
