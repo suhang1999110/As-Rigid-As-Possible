@@ -240,7 +240,6 @@ public:
     void SetConstraints(const char*);
     void SetConstraints(vector<int>);
     void ResetConstraints();
-    void SetBoundaryAnchors();
     void SetAnchors(const char*);
     void SetAnchors(vector<int>);
     void SetHandles();

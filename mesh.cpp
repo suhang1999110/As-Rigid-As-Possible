@@ -477,8 +477,6 @@ void Mesh::UpdateVertices() {
 
 void Mesh::Deform(int num_iterations, WEIGHT_TYPE weight_type){
     /* Build linear system */
-    cout<<anchors.size()<<endl;
-    cout<<handle_num<<endl;
     InitRotations();
     InitWeights(weight_type);
     InitHandleMapping();

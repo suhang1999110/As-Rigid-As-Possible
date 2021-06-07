@@ -36,7 +36,7 @@ Vector3d g_center;
 double g_sdepth;
 double drag_start_x = 0, drag_start_y = 0;
 Mesh mesh;	// our mesh
-double move_dist = 0.2;
+const double scale_factor = 0.1;
 
 // UI variables
 vector<int> anchor_indices;
@@ -306,10 +306,10 @@ void DrawSelectedVertices() {
     size_t i;
     if (currentMode != Dragging) {
         for (i = 0; i < vList.size(); i++) {
-            if (vList[i]->Flag() == 1) glColor3f(0.8, 0.0, 0.0); // Mouse Selected Point 
+            if (vList[i]->Flag() == 1) glColor3f(0.8, 0.0, 0.0); // Mouse Selected Point
             else if (vList[i]->Type() == ANCHOR || vList[i]->Type() == STATIONARY) glColor3f(0.0, 0.0, 1.0); // Anchor Point
-            else if (vList[i]->Type() == HANDLE) glColor3f(0.3, 1.0, 0.0); // Handle Point
-            else glColor3f(1.0, 1.0, 1.0);
+            else if (vList[i]->Type() == HANDLE) {} //glColor3f(0.3, 1.0, 0.0); // Handle Point
+//            else glColor3f(1.0, 1.0, 1.0);
             glVertex3dv(vList[i]->Position().ToArray());
         }
     } else {
@@ -333,6 +333,7 @@ void MoveAnchors(Vector3d shift) {
 
 // GLUT keyboard callback function
 void KeyboardFunc(unsigned char ch, int x, int y) {
+    Vector3d volume = mesh.MaxCoord() - mesh.MinCoord();
     switch (ch) {
         case '1':	// key '1'
             currentMode = Viewing;
@@ -417,27 +418,27 @@ void KeyboardFunc(unsigned char ch, int x, int y) {
             break;
         case 'I':
         case 'i':   // key 'x-axis UP'
-            if (currentMode == Dragging) MoveAnchors(Vector3d(move_dist, 0, 0));
+            if (currentMode == Dragging) MoveAnchors(Vector3d(scale_factor * volume[0], 0, 0));
             break;
         case 'K':
         case 'k':   // key 'x-axis DOWN'
-            if (currentMode == Dragging) MoveAnchors(Vector3d(-move_dist, 0, 0));
+            if (currentMode == Dragging) MoveAnchors(Vector3d(-scale_factor * volume[0], 0, 0));
             break;
         case 'J':
         case 'j':   // key 'y-axis UP'
-            if (currentMode == Dragging) MoveAnchors(Vector3d(0, move_dist, 0));
+            if (currentMode == Dragging) MoveAnchors(Vector3d(0, scale_factor * volume[1], 0));
             break;
         case 'L':
         case 'l':   // key 'y-axis DOWN'
-            if (currentMode == Dragging) MoveAnchors(Vector3d(0, -move_dist, 0));
+            if (currentMode == Dragging) MoveAnchors(Vector3d(0, -scale_factor * volume[1], 0));
             break;
         case 'U':
         case 'u':   // key 'z-axis UP'
-            if (currentMode == Dragging) MoveAnchors(Vector3d(0, 0, move_dist));
+            if (currentMode == Dragging) MoveAnchors(Vector3d(0, 0, scale_factor * volume[2]));
             break;
         case 'O':
         case 'o':   // key 'z-axis DOWN'
-            if (currentMode == Dragging) MoveAnchors(Vector3d(0, 0, -move_dist));
+            if (currentMode == Dragging) MoveAnchors(Vector3d(0, 0, -scale_factor * volume[2]));
             break;
 
         case '4':
