@@ -194,7 +194,7 @@ bool Mesh::LoadObjFile(const char *filename) {
         faces(2,i) = face_idx3[i];
     }
     p_prime = p;
-    this->SetBoundaryAnchors();
+    this->ResetConstraints();
 
     return true;
 }
@@ -211,37 +211,32 @@ const vector<Vertex*> Mesh::GetNeighbors(Vertex* v) {
 
 /* Set anchors from file, the others are handles by default */
 void Mesh::SetConstraints(const char* anchor_path) {
-    for_each(vList.begin(), vList.end(), [](Vertex *v){v->SetType(HANDLE);});
-    this->SetBoundaryAnchors();
+//    this->ResetConstraints();
     this->SetAnchors(anchor_path);
     this->SetHandles();
 }
 
-/* Set anchors from code, the others are handles by default */
-void Mesh::SetConstraints(AnchorPair _anchors) {
-    for_each(vList.begin(), vList.end(), [](Vertex *v){v->SetType(HANDLE);});
-    this->SetBoundaryAnchors();
-    this->SetAnchors(forward<AnchorPair>(_anchors));
+/* Set anchors and handles from GUI, the others are anchors by default */
+void Mesh::SetConstraints(vector<int> _anchors) {
+//    this->ResetConstraints();
+    this->SetAnchors(forward<vector<int>>(_anchors));
     this->SetHandles();
 }
 
-/* Set anchors and handles from GUI, the others are anchors by default */
-void Mesh::SetConstraints(vector<int> _anchors, vector<int> _handles) {
-    for_each(vList.begin(), vList.end(), [](Vertex *v){v->SetType(ANCHOR);});
-    this->SetBoundaryAnchors();
-    this->SetAnchors(forward<vector<int>>(_anchors));
-    this->SetHandles(forward<vector<int>>(_handles));
-}
-
-/* Set all boundary vertices to anchors */
-void Mesh::SetBoundaryAnchors() {
+/* Set all boundary to anchor, the others to be handle */
+void Mesh::ResetConstraints() {
+    anchors.clear();
     for(auto v: vList){
         if(v->IsBoundary()){
-            Point point(v->Position().X(), v->Position().Y(), v->Position().Z());
+            Point point(v->Position().X(), v->Position().Y(), v->Position().X());
             anchors[v->Index()] = point;
-            v->SetType(ANCHOR);
+            v->SetType(STATIONARY);
+        }
+        else{
+            v->SetType(HANDLE);
         }
     }
+    this->SetHandles();
 }
 
 void Mesh::SetAnchors(const char *anchor_path) {
@@ -264,16 +259,6 @@ void Mesh::SetAnchors(const char *anchor_path) {
     ifs.close();
 }
 
-void Mesh::SetAnchors(AnchorPair _anchors) {
-    for(auto _anchor: _anchors){
-        int idx = _anchor.first;
-        Point new_point = _anchor.second;
-        anchors[idx] = new_point;
-        p_prime.col(idx) = new_point;
-        vList[idx]->SetType(ANCHOR);
-    }
-}
-
 void Mesh::SetAnchors(vector<int> _anchors){
     for(auto idx: _anchors){
         auto pos = vList[idx]->Position();
@@ -286,19 +271,13 @@ void Mesh::SetAnchors(vector<int> _anchors){
 
 void Mesh::SetHandles() {
     assert(anchors.size() > 0);
+    int handle_cnt = 0;
     for(int i = 0; i < vList.size(); i++){
-        if(vList[i]->Type() == UNSPECIFIED){
-            vList[i]->SetType(HANDLE);
+        if(vList[i]->Type() == HANDLE){
+            handle_cnt++;
         }
     }
-    handle_num = vList.size() - anchors.size();
-}
-
-void Mesh::SetHandles(vector<int> handle_idx) {
-    handle_num = handle_idx.size();
-    for(int i: handle_idx){
-        vList[i]->SetType(HANDLE);
-    }
+    handle_num = handle_cnt;
 }
 
 void Mesh::InitWeights(WEIGHT_TYPE weight_type) {
@@ -375,17 +354,6 @@ void Mesh::InitCotangentWeights(){
 void Mesh::InitRotations() {
     rotations.clear();
     rotations.resize(vList.size(), Eigen::Matrix3d::Identity());
-}
-
-void Mesh::InitAnchors() {
-    for(int i = 0; i < vList.size(); i++){
-        if(vList[i]->Type() == UNSPECIFIED){
-            vList[i]->SetType(ANCHOR);
-            auto pos = vList[i]->Position();
-            Point new_point(pos.X(), pos.Y(), pos.Z());
-            anchors[i] = new_point;
-        }
-    }
 }
 
 void Mesh::InitHandleMapping() {
@@ -509,9 +477,10 @@ void Mesh::UpdateVertices() {
 
 void Mesh::Deform(int num_iterations, WEIGHT_TYPE weight_type){
     /* Build linear system */
+    cout<<anchors.size()<<endl;
+    cout<<handle_num<<endl;
     InitRotations();
     InitWeights(weight_type);
-    InitAnchors();
     InitHandleMapping();
     BuildLinearSystem();
 

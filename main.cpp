@@ -9,10 +9,10 @@ int main(int argc, char **argv) {
         mesh.LoadObjFile(argv[1]);
         mesh.SetConstraints(argv[2]);
         InitAnchorList();
+        cout<<"file input"<<endl;
     }
     else if(argc == 2){
         mesh.LoadObjFile(argv[1]);
-        mesh.SetBoundaryAnchors();
         InitAnchorList();
     }
     else{

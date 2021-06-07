@@ -123,62 +123,6 @@ void InitMenu() {
     glutAttachMenu(GLUT_RIGHT_BUTTON);
 }
 
-// init geometry (if no input argument is provided)
-void InitGeometry() {
-    const int VSIZE = 4;
-    const int HESIZE = 12;
-    const int FSIZE = 4;
-    int i;
-    Vertex *v[VSIZE];
-    HEdge *he[HESIZE];
-    Face *f[FSIZE];
-
-    for (i=0; i<VSIZE; i++) {
-        v[i] = new Vertex();
-        mesh.vList.push_back(v[i]);
-    }
-    v[0]->SetPosition(Vector3d(0.0, 0.0, 0.0));
-    v[1]->SetPosition(Vector3d(10.0, 0.0, 0.0));
-    v[2]->SetPosition(Vector3d(0.0, 10.0, 0.0));
-    v[3]->SetPosition(Vector3d(0.0, 0.0, 10.0));
-
-    v[0]->SetNormal(Vector3d(-0.577, -0.577, -0.577));
-    v[1]->SetNormal(Vector3d(0.0, -0.7, -0.7));
-    v[2]->SetNormal(Vector3d(-0.7, 0.0, -0.7));
-    v[3]->SetNormal(Vector3d(-0.7, -0.7, 0.0));
-
-    for (i=0; i<FSIZE; i++) {
-        f[i] = new Face();
-        mesh.fList.push_back(f[i]);
-    }
-
-    for (i=0; i<HESIZE; i++) {
-        he[i] = new HEdge();
-        mesh.heList.push_back(he[i]);
-    }
-    for (i=0; i<FSIZE; i++) {
-        int base = i*3;
-        SetPrevNext(he[base], he[base+1]);
-        SetPrevNext(he[base+1], he[base+2]);
-        SetPrevNext(he[base+2], he[base]);
-        SetFace(f[i], he[base]);
-    }
-    SetTwin(he[0], he[4]);
-    SetTwin(he[1], he[7]);
-    SetTwin(he[2], he[10]);
-    SetTwin(he[3], he[8]);
-    SetTwin(he[5], he[9]);
-    SetTwin(he[6], he[11]);
-    he[0]->SetStart(v[1]); he[1]->SetStart(v[2]); he[2]->SetStart(v[3]);
-    he[3]->SetStart(v[0]); he[4]->SetStart(v[2]); he[5]->SetStart(v[1]);
-    he[6]->SetStart(v[0]); he[7]->SetStart(v[3]); he[8]->SetStart(v[2]);
-    he[9]->SetStart(v[0]); he[10]->SetStart(v[1]); he[11]->SetStart(v[3]);
-    v[0]->SetHalfEdge(he[3]);
-    v[1]->SetHalfEdge(he[0]);
-    v[2]->SetHalfEdge(he[1]);
-    v[3]->SetHalfEdge(he[2]);
-}
-
 // GLUT menu callback function
 void MenuCallback(int value) {
     switch (glutGetMenu()) {
@@ -363,7 +307,7 @@ void DrawSelectedVertices() {
     if (currentMode != Dragging) {
         for (i = 0; i < vList.size(); i++) {
             if (vList[i]->Flag() == 1) glColor3f(0.8, 0.0, 0.0); // Mouse Selected Point 
-            else if (vList[i]->Type() == ANCHOR) glColor3f(0.0, 0.0, 1.0); // Anchor Point
+            else if (vList[i]->Type() == ANCHOR || vList[i]->Type() == STATIONARY) glColor3f(0.0, 0.0, 1.0); // Anchor Point
             else if (vList[i]->Type() == HANDLE) glColor3f(0.3, 1.0, 0.0); // Handle Point
             else glColor3f(1.0, 1.0, 1.0);
             glVertex3dv(vList[i]->Position().ToArray());
@@ -423,7 +367,7 @@ void KeyboardFunc(unsigned char ch, int x, int y) {
                     OneRingVertex ring(mesh.Vertices()[idx]);
                     Vertex *curr_neighbor = NULL;
                     while ( curr_neighbor = ring.NextVertex() ) {
-                        if (curr_neighbor->Type() == UNSPECIFIED) {
+                        if (curr_neighbor->Type() == HANDLE) {
                             curr_neighbor->SetFlag(0);
                             curr_neighbor->SetType(ANCHOR);
                             anchor_indices.emplace_back(curr_neighbor->Index());
@@ -444,7 +388,7 @@ void KeyboardFunc(unsigned char ch, int x, int y) {
                 else if (mesh.Vertices()[currSelectedVertex]->Type() == HANDLE)
                     handle_indices.erase(remove(handle_indices.begin(), handle_indices.end(), currSelectedVertex), handle_indices.end());
                 mesh.Vertices()[currSelectedVertex]->SetFlag(0);
-                mesh.Vertices()[currSelectedVertex]->SetType(UNSPECIFIED);
+                mesh.Vertices()[currSelectedVertex]->SetType(HANDLE);
             }
             break;
         case 'C': // Go back to the beginning.
@@ -456,38 +400,7 @@ void KeyboardFunc(unsigned char ch, int x, int y) {
                 newly_added_handle_indices.clear();
                 for (auto vertex: mesh.Vertices()) {
                     vertex->SetFlag(0);
-                    vertex->SetType(UNSPECIFIED);
-                }
-            }
-            break;
-        case 'h':   // Pick one handle point
-            if (currentMode == Selection && currSelectedVertex != -1) {
-                handle_indices.emplace_back(currSelectedVertex);
-                grouped_anchor_indices.clear();
-                newly_added_anchor_indices.clear();
-                newly_added_handle_indices.clear();
-                newly_added_handle_indices.emplace_back(currSelectedVertex);
-
-                mesh.Vertices()[currSelectedVertex]->SetFlag(0);
-                mesh.Vertices()[currSelectedVertex]->SetType(HANDLE);
-            }
-            break;
-        case 'H':   // Extend a group of neighboring handle points
-            if (currentMode == Selection && currSelectedVertex != -1) {
-                vector<int> iterated_list = newly_added_handle_indices;
-                newly_added_handle_indices.clear();
-                
-                for (int idx: iterated_list) {
-                    OneRingVertex ring(mesh.Vertices()[idx]);
-                    Vertex *curr_neighbor = NULL;
-                    while ( curr_neighbor = ring.NextVertex() ) {
-                        if (curr_neighbor->Type() == UNSPECIFIED) {
-                            curr_neighbor->SetFlag(0);
-                            curr_neighbor->SetType(HANDLE);
-                            handle_indices.emplace_back(curr_neighbor->Index());
-                            newly_added_handle_indices.emplace_back(curr_neighbor->Index());
-                        }
-                    }
+                    vertex->SetType(HANDLE);
                 }
             }
             break;
@@ -522,7 +435,8 @@ void KeyboardFunc(unsigned char ch, int x, int y) {
 
         case '4':
             cout << "Deforming the mesh" << endl;
-            mesh.SetConstraints(anchor_indices, handle_indices);
+            mesh.SetConstraints(anchor_indices);
+            cout<<anchor_indices.size()<<" "<<handle_indices.size()<<endl;
             mesh.Deform(5, static_cast<WEIGHT_TYPE>(weight_type));
             break;
         // case 'r':

@@ -24,14 +24,13 @@ typedef std::vector<HEdge*> HEdgeList;
 typedef std::vector<Vertex*> VertexList;
 typedef std::vector<Face*> FaceList;
 typedef Eigen::Matrix<double, 3, 1> Point;
-typedef std::vector<std::pair<int, Point>> AnchorPair;
 
 // enums
 enum WEIGHT_TYPE{
     UNIFORM, COTANGENT
 };
 enum VERTEX_TYPE{
-    HANDLE, ANCHOR, UNSPECIFIED
+    HANDLE, ANCHOR, STATIONARY
 };
 
 // other helper functions
@@ -202,7 +201,7 @@ public:
     Eigen::Matrix<int, 3, Eigen::Dynamic> faces;
     Eigen::SparseMatrix<double> weights;
     Eigen::SparseMatrix<double> L;
-    Eigen::Matrix<double, 3, Eigen::Dynamic> b, b_init;
+    Eigen::Matrix<double, 3, Eigen::Dynamic> b, b_init ;
     Eigen::SimplicialLDLT<Eigen::SparseMatrix<double>> solver;
     vector<Eigen::Matrix3d> rotations;
     unordered_map<int, Point> anchors;
@@ -221,7 +220,7 @@ public:
 
     // functions for loading obj files,
     // you DO NOT need to understand and use them
-    void AddVertex(Vertex *v) { vList.push_back(v); v->SetType(UNSPECIFIED); }
+    void AddVertex(Vertex *v) { vList.push_back(v); v->SetType(HANDLE); }
     void AddFace(int v1, int v2, int v3);
     void Clear() {
         size_t i;
@@ -239,17 +238,14 @@ public:
     // Deform functions
     void Deform(int num_iterations, WEIGHT_TYPE);
     void SetConstraints(const char*);
-    void SetConstraints(AnchorPair);
-    void SetConstraints(vector<int>, vector<int>);
+    void SetConstraints(vector<int>);
+    void ResetConstraints();
     void SetBoundaryAnchors();
     void SetAnchors(const char*);
-    void SetAnchors(AnchorPair);
     void SetAnchors(vector<int>);
     void SetHandles();
-    void SetHandles(vector<int>);
     void InitRotations();
     void InitWeights(WEIGHT_TYPE);
-    void InitAnchors();
     void InitUniformWeights();
     void InitCotangentWeights();
     void InitHandleMapping();
