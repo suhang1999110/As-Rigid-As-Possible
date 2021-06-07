@@ -211,14 +211,14 @@ const vector<Vertex*> Mesh::GetNeighbors(Vertex* v) {
 
 /* Set anchors from file, the others are handles by default */
 void Mesh::SetConstraints(const char* anchor_path) {
-//    this->ResetConstraints();
+    this->ResetConstraints();
     this->SetAnchors(anchor_path);
     this->SetHandles();
 }
 
 /* Set anchors and handles from GUI, the others are anchors by default */
 void Mesh::SetConstraints(vector<int> _anchors) {
-//    this->ResetConstraints();
+    this->ResetConstraints();
     this->SetAnchors(forward<vector<int>>(_anchors));
     this->SetHandles();
 }
@@ -228,7 +228,7 @@ void Mesh::ResetConstraints() {
     anchors.clear();
     for(auto v: vList){
         if(v->IsBoundary()){
-            Point point(v->Position().X(), v->Position().Y(), v->Position().X());
+            Point point(v->Position().X(), v->Position().Y(), v->Position().Z());
             anchors[v->Index()] = point;
             v->SetType(STATIONARY);
         }

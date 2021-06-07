@@ -5,6 +5,7 @@
 #include "mesh.hpp"
 #include "matrix.hpp"
 #include "OpenGLProjector.hpp"
+#include <queue>
 
 // Enumeration
 enum EnumDisplayMode { WIREFRAME, HIDDENLINE, FLATSHADED, SMOOTHSHADED, COLORSMOOTHSHADED };
@@ -42,7 +43,6 @@ vector<int> anchor_indices;
 vector<int> handle_indices;
 vector<int> grouped_anchor_indices;
 vector<int> newly_added_anchor_indices;
-vector<int> newly_added_handle_indices;
 
 // functions
 void MoveAnchors(Vector3d);
@@ -271,6 +271,7 @@ void DrawSmoothShaded() {
     glDisable(GL_LIGHTING);
 }
 
+// Color Smooth Shaded render function
 void DrawColorSmoothShaded() {
     FaceList fList = mesh.Faces();
     glShadeModel(GL_SMOOTH);
@@ -295,7 +296,6 @@ void DrawColorSmoothShaded() {
     glEnd();
     glDisable(GL_LIGHTING);
 }
-
 
 // draw the selected ROI vertices on the mesh
 void DrawSelectedVertices() {
@@ -323,6 +323,7 @@ void DrawSelectedVertices() {
     glEnd();
 }
 
+// Drag a group of anchors
 void MoveAnchors(Vector3d shift) {
     for (int idx: grouped_anchor_indices) {
         Vector3d pos = mesh.Vertices()[idx]->Position();
@@ -347,15 +348,36 @@ void KeyboardFunc(unsigned char ch, int x, int y) {
             break;
         case 'a':   // Pick one anchor point
             if (currentMode == Selection && currSelectedVertex != -1) {
-                anchor_indices.emplace_back(currSelectedVertex);
-                grouped_anchor_indices.clear();
-                grouped_anchor_indices.emplace_back(currSelectedVertex);
-                newly_added_anchor_indices.clear();
-                newly_added_handle_indices.clear();
-                newly_added_anchor_indices.emplace_back(currSelectedVertex);
-
-                mesh.Vertices()[currSelectedVertex]->SetFlag(0);
-                mesh.Vertices()[currSelectedVertex]->SetType(ANCHOR);
+                if (mesh.Vertices()[currSelectedVertex]->Type() != HANDLE) {
+                    grouped_anchor_indices.clear();
+                    grouped_anchor_indices.emplace_back(currSelectedVertex);
+                    deque<int> queue;
+                    queue.push_back(currSelectedVertex);
+                    while ( queue.size() != 0 ) {
+                        OneRingVertex ring(mesh.Vertices()[queue.front()]);
+                        Vertex *curr_neighbor = NULL;
+                        queue.pop_front();
+                        while ( curr_neighbor = ring.NextVertex() ) {
+                            if (curr_neighbor->Type() != HANDLE) {
+                                int idx = curr_neighbor->Index();
+                                vector<int>::iterator iter = find(grouped_anchor_indices.begin(), grouped_anchor_indices.end(), idx);
+                                if (iter == grouped_anchor_indices.end()) {
+                                    queue.push_back(idx);
+                                    grouped_anchor_indices.emplace_back(idx);
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    anchor_indices.emplace_back(currSelectedVertex);
+                    handle_indices.erase(remove(handle_indices.begin(), handle_indices.end(), currSelectedVertex), handle_indices.end());
+                    grouped_anchor_indices.clear();
+                    grouped_anchor_indices.emplace_back(currSelectedVertex);
+                    newly_added_anchor_indices.clear();
+                    newly_added_anchor_indices.emplace_back(currSelectedVertex);
+                    mesh.Vertices()[currSelectedVertex]->SetFlag(0);
+                    mesh.Vertices()[currSelectedVertex]->SetType(ANCHOR);
+                }
             }
             break;
         case 'A':   // Extend a group of neighboring anchor points
@@ -371,6 +393,7 @@ void KeyboardFunc(unsigned char ch, int x, int y) {
                             curr_neighbor->SetFlag(0);
                             curr_neighbor->SetType(ANCHOR);
                             anchor_indices.emplace_back(curr_neighbor->Index());
+                            handle_indices.erase(remove(handle_indices.begin(), handle_indices.end(), curr_neighbor->Index()), handle_indices.end());
                             grouped_anchor_indices.emplace_back(curr_neighbor->Index());
                             newly_added_anchor_indices.emplace_back(curr_neighbor->Index());
                         }
@@ -378,36 +401,20 @@ void KeyboardFunc(unsigned char ch, int x, int y) {
                 }
             }
             break;
-        case 'c': // Cancel the picked anchor point or the handle point
+        case 'h':
+        case 'H':   // Change anchor to handle
             if (currentMode == Selection && currSelectedVertex != -1) {
+                handle_indices.emplace_back(currSelectedVertex);
+                anchor_indices.erase(remove(anchor_indices.begin(), anchor_indices.end(), currSelectedVertex), anchor_indices.end());
                 grouped_anchor_indices.clear();
                 newly_added_anchor_indices.clear();
-                newly_added_handle_indices.clear();
-                if (mesh.Vertices()[currSelectedVertex]->Type() == ANCHOR)
-                    anchor_indices.erase(remove(anchor_indices.begin(), anchor_indices.end(), currSelectedVertex), anchor_indices.end());
-                else if (mesh.Vertices()[currSelectedVertex]->Type() == HANDLE)
-                    handle_indices.erase(remove(handle_indices.begin(), handle_indices.end(), currSelectedVertex), handle_indices.end());
                 mesh.Vertices()[currSelectedVertex]->SetFlag(0);
                 mesh.Vertices()[currSelectedVertex]->SetType(HANDLE);
-            }
-            break;
-        case 'C': // Go back to the beginning.
-            if (currentMode == Selection) {
-                anchor_indices.clear();
-                handle_indices.clear();
-                grouped_anchor_indices.clear();
-                newly_added_anchor_indices.clear();
-                newly_added_handle_indices.clear();
-                for (auto vertex: mesh.Vertices()) {
-                    vertex->SetFlag(0);
-                    vertex->SetType(HANDLE);
-                }
             }
             break;
         case 27:
             exit(0);
             break;
-
         case 'I':
         case 'i':   // key 'x-axis UP'
             if (currentMode == Dragging) MoveAnchors(Vector3d(move_dist, 0, 0));
