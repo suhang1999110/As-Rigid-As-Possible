@@ -9,7 +9,6 @@ int main(int argc, char **argv) {
         mesh.LoadObjFile(argv[1]);
         mesh.SetConstraints(argv[2]);
         InitAnchorList();
-        cout<<"file input"<<endl;
     }
     else if(argc == 2){
         mesh.LoadObjFile(argv[1]);
@@ -17,6 +16,7 @@ int main(int argc, char **argv) {
     }
     else{
         cout << "Usage: ./main ${Obj_path} ${Anchors_path}" << endl;
+        cout << "Usage: ./main ${Obj_path}" << endl;
     }
     SetBoundaryBox(mesh.MinCoord(), mesh.MaxCoord());
 

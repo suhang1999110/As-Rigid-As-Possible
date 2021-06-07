@@ -19,7 +19,7 @@ enum Mode
 Mode currentMode = Viewing;
 int weight_type = UNIFORM;
 
-bool VIS_HANDLE = true;
+bool VIS_HANDLE = false;
 int ITER = 10;
 
 // variables
@@ -87,7 +87,7 @@ void InitGL() {
 
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
     glutInitWindowSize(500, 500);
-    glutCreateWindow("CS271 Mesh Viewer");
+    glutCreateWindow("Surface Deformer");
     glClearColor(1.0, 1.0, 1.0, 1.0);
     glPolygonOffset(1.0, 1.0);
     glDepthFunc(GL_LEQUAL);
@@ -429,40 +429,47 @@ void KeyboardFunc(unsigned char ch, int x, int y) {
         case 'I':
         case 'i':   // key 'x-axis UP'
             if (currentMode == Dragging) MoveAnchors(Vector3d(scale_factor * mean_volumn, 0, 0));
+            goto deform;
             break;
         case 'K':
         case 'k':   // key 'x-axis DOWN'
             if (currentMode == Dragging) MoveAnchors(Vector3d(-scale_factor * mean_volumn, 0, 0));
+            goto deform;
             break;
         case 'J':
         case 'j':   // key 'y-axis UP'
             if (currentMode == Dragging) MoveAnchors(Vector3d(0, scale_factor * mean_volumn, 0));
+            goto deform;
             break;
         case 'L':
         case 'l':   // key 'y-axis DOWN'
             if (currentMode == Dragging) MoveAnchors(Vector3d(0, -scale_factor * mean_volumn, 0));
+            goto deform;
             break;
         case 'U':
         case 'u':   // key 'z-axis UP'
             if (currentMode == Dragging) MoveAnchors(Vector3d(0, 0, scale_factor * mean_volumn));
+            goto deform;
             break;
         case 'O':
         case 'o':   // key 'z-axis DOWN'
             if (currentMode == Dragging) MoveAnchors(Vector3d(0, 0, -scale_factor * mean_volumn));
+            goto deform;
             break;
         case '0':
             if (VIS_HANDLE == 1) VIS_HANDLE = 0;
             else VIS_HANDLE = 1;
             break;
         case '4':
+        deform:
             cout << "Deforming the mesh" << endl;
             mesh.SetConstraints(anchor_indices);
             cout<<anchor_indices.size()<<" "<<handle_indices.size()<<endl;
             mesh.Deform(ITER, static_cast<WEIGHT_TYPE>(weight_type));
             break;
-        // case 'r':
-        //     cout << "The picked point's index is " << currSelectedVertex << ".\n";
-        //     break;
+         case 'r':
+             cout << "The picked point's index is " << currSelectedVertex << ".\n";
+             break;
     }
     glutPostRedisplay();
 }
@@ -568,8 +575,6 @@ void SelectVertexByPoint()
     {
         currSelectedVertex = selectedIndex;
         vList[selectedIndex]->SetFlag(1);
-        // cout<<"index: "<<vList[selectedIndex]->Index()<<" ";
-        // cout<<"point: "<<vList[selectedIndex]->Position()<<endl;
     }
 
 }

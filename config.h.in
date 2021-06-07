@@ -1,0 +1,10 @@
+//
+// Created by suhang on 2021/6/7.
+//
+
+#ifndef AS_RIGID_AS_POSSIBLE_CONFIG_H
+#define AS_RIGID_AS_POSSIBLE_CONFIG_H
+
+#define PROJECT_DIR "@PROJECT_SOURCE_DIR@/"
+
+#endif //AS_RIGID_AS_POSSIBLE_CONFIG_H
