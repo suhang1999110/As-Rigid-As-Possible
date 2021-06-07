@@ -270,7 +270,7 @@ void Mesh::SetAnchors(vector<int> _anchors){
 }
 
 void Mesh::SetHandles() {
-    assert(anchors.size() > 0);
+    // assert(anchors.size() > 0);
     int handle_cnt = 0;
     for(int i = 0; i < vList.size(); i++){
         if(vList[i]->Type() == HANDLE){

@@ -20,7 +20,7 @@ Mode currentMode = Viewing;
 int weight_type = UNIFORM;
 
 bool VIS_HANDLE = true;
-int ITER = 5;
+int ITER = 10;
 
 // variables
 int displayMode = FLATSHADED;	// current display mode
@@ -359,6 +359,7 @@ void KeyboardFunc(unsigned char ch, int x, int y) {
         case 'a':   // Pick one anchor point
             if (currentMode == Selection && currSelectedVertex != -1) {
                 if (mesh.Vertices()[currSelectedVertex]->Type() != HANDLE) {
+                    mesh.Vertices()[currSelectedVertex]->SetFlag(0);
                     grouped_anchor_indices.clear();
                     grouped_anchor_indices.emplace_back(currSelectedVertex);
                     deque<int> queue;
