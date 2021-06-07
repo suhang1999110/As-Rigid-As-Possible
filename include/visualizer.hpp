@@ -35,6 +35,7 @@ Vector3d g_center;
 double g_sdepth;
 double drag_start_x = 0, drag_start_y = 0;
 Mesh mesh;	// our mesh
+double move_dist = 0.2;
 
 // UI variables
 vector<int> anchor_indices;
@@ -493,6 +494,32 @@ void KeyboardFunc(unsigned char ch, int x, int y) {
         case 27:
             exit(0);
             break;
+
+        case 'I':
+        case 'i':   // key 'x-axis UP'
+            if (currentMode == Dragging) MoveAnchors(Vector3d(move_dist, 0, 0));
+            break;
+        case 'K':
+        case 'k':   // key 'x-axis DOWN'
+            if (currentMode == Dragging) MoveAnchors(Vector3d(-move_dist, 0, 0));
+            break;
+        case 'J':
+        case 'j':   // key 'y-axis UP'
+            if (currentMode == Dragging) MoveAnchors(Vector3d(0, move_dist, 0));
+            break;
+        case 'L':
+        case 'l':   // key 'y-axis DOWN'
+            if (currentMode == Dragging) MoveAnchors(Vector3d(0, -move_dist, 0));
+            break;
+        case 'U':
+        case 'u':   // key 'z-axis UP'
+            if (currentMode == Dragging) MoveAnchors(Vector3d(0, 0, move_dist));
+            break;
+        case 'O':
+        case 'o':   // key 'z-axis DOWN'
+            if (currentMode == Dragging) MoveAnchors(Vector3d(0, 0, -move_dist));
+            break;
+
         case '4':
             cout << "Deforming the mesh" << endl;
             mesh.SetConstraints(anchor_indices, handle_indices);
