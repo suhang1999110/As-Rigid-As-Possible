@@ -359,12 +359,21 @@ void DrawSelectedVertices() {
     glPointSize(5.0);
     glBegin(GL_POINTS);
     size_t i;
-    for (i = 0; i < vList.size(); i++) {
-        if (vList[i]->Flag() == 1) glColor3f(0.8, 0.0, 0.0); // Mouse Selected Point 
-        else if (vList[i]->Type() == ANCHOR) glColor3f(0.0, 0.0, 1.0); // Anchor Point
-        else if (vList[i]->Type() == HANDLE) glColor3f(0.3, 1.0, 0.0); // Handle Point
-        else glColor3f(1.0, 1.0, 1.0);
-        glVertex3dv(vList[i]->Position().ToArray());
+    if (currentMode != Dragging) {
+        for (i = 0; i < vList.size(); i++) {
+            if (vList[i]->Flag() == 1) glColor3f(0.8, 0.0, 0.0); // Mouse Selected Point 
+            else if (vList[i]->Type() == ANCHOR) glColor3f(0.0, 0.0, 1.0); // Anchor Point
+            else if (vList[i]->Type() == HANDLE) glColor3f(0.3, 1.0, 0.0); // Handle Point
+            else glColor3f(1.0, 1.0, 1.0);
+            glVertex3dv(vList[i]->Position().ToArray());
+        }
+    } else {
+        for (i = 0; i < vList.size(); i++) {
+            vector<int>::iterator iter = find(grouped_anchor_indices.begin(), grouped_anchor_indices.end(), i);
+            if (iter != grouped_anchor_indices.end()) glColor3f(0.0, 0.0, 1.0);
+            else glColor3f(1.0, 1.0, 1.0);
+            glVertex3dv(vList[i]->Position().ToArray());
+        }
     }
     glEnd();
 }
