@@ -19,6 +19,8 @@ enum Mode
 Mode currentMode = Viewing;
 int weight_type = UNIFORM;
 
+bool VIS_HANDLE = true;
+int ITER = 5;
 
 // variables
 int displayMode = FLATSHADED;	// current display mode
@@ -308,15 +310,21 @@ void DrawSelectedVertices() {
         for (i = 0; i < vList.size(); i++) {
             if (vList[i]->Flag() == 1) glColor3f(0.8, 0.0, 0.0); // Mouse Selected Point
             else if (vList[i]->Type() == ANCHOR || vList[i]->Type() == STATIONARY) glColor3f(0.0, 0.0, 1.0); // Anchor Point
-            else if (vList[i]->Type() == HANDLE) {} //glColor3f(0.3, 1.0, 0.0); // Handle Point
-//            else glColor3f(1.0, 1.0, 1.0);
+            else if (vList[i]->Type() == HANDLE) { // Handle Point
+                if (VIS_HANDLE == 1) glColor3f(1.0, 1.0, 1.0); 
+                else continue;
+            }
             glVertex3dv(vList[i]->Position().ToArray());
         }
     } else {
         for (i = 0; i < vList.size(); i++) {
             vector<int>::iterator iter = find(grouped_anchor_indices.begin(), grouped_anchor_indices.end(), i);
-            if (iter != grouped_anchor_indices.end()) glColor3f(0.0, 0.0, 1.0);
-            else glColor3f(1.0, 1.0, 1.0);
+            if (iter != grouped_anchor_indices.end()) glColor3f(0.8, 0.0, 0.0); // Groupped Anchor Point
+            else if (vList[i]->Type() == ANCHOR || vList[i]->Type() == STATIONARY) glColor3f(0.0, 0.0, 1.0); // Anchor Point
+            else if (vList[i]->Type() == HANDLE) { // Handle Point
+                if (VIS_HANDLE == 1) glColor3f(1.0, 1.0, 1.0); 
+                else continue;
+            }
             glVertex3dv(vList[i]->Position().ToArray());
         }
     }
@@ -334,6 +342,7 @@ void MoveAnchors(Vector3d shift) {
 // GLUT keyboard callback function
 void KeyboardFunc(unsigned char ch, int x, int y) {
     Vector3d volume = mesh.MaxCoord() - mesh.MinCoord();
+    double mean_volumn = (volume[0] + volume[1] + volume[2]) / 3;
     switch (ch) {
         case '1':	// key '1'
             currentMode = Viewing;
@@ -418,34 +427,37 @@ void KeyboardFunc(unsigned char ch, int x, int y) {
             break;
         case 'I':
         case 'i':   // key 'x-axis UP'
-            if (currentMode == Dragging) MoveAnchors(Vector3d(scale_factor * volume[0], 0, 0));
+            if (currentMode == Dragging) MoveAnchors(Vector3d(scale_factor * mean_volumn, 0, 0));
             break;
         case 'K':
         case 'k':   // key 'x-axis DOWN'
-            if (currentMode == Dragging) MoveAnchors(Vector3d(-scale_factor * volume[0], 0, 0));
+            if (currentMode == Dragging) MoveAnchors(Vector3d(-scale_factor * mean_volumn, 0, 0));
             break;
         case 'J':
         case 'j':   // key 'y-axis UP'
-            if (currentMode == Dragging) MoveAnchors(Vector3d(0, scale_factor * volume[1], 0));
+            if (currentMode == Dragging) MoveAnchors(Vector3d(0, scale_factor * mean_volumn, 0));
             break;
         case 'L':
         case 'l':   // key 'y-axis DOWN'
-            if (currentMode == Dragging) MoveAnchors(Vector3d(0, -scale_factor * volume[1], 0));
+            if (currentMode == Dragging) MoveAnchors(Vector3d(0, -scale_factor * mean_volumn, 0));
             break;
         case 'U':
         case 'u':   // key 'z-axis UP'
-            if (currentMode == Dragging) MoveAnchors(Vector3d(0, 0, scale_factor * volume[2]));
+            if (currentMode == Dragging) MoveAnchors(Vector3d(0, 0, scale_factor * mean_volumn));
             break;
         case 'O':
         case 'o':   // key 'z-axis DOWN'
-            if (currentMode == Dragging) MoveAnchors(Vector3d(0, 0, -scale_factor * volume[2]));
+            if (currentMode == Dragging) MoveAnchors(Vector3d(0, 0, -scale_factor * mean_volumn));
             break;
-
+        case '0':
+            if (VIS_HANDLE == 1) VIS_HANDLE = 0;
+            else VIS_HANDLE = 1;
+            break;
         case '4':
             cout << "Deforming the mesh" << endl;
             mesh.SetConstraints(anchor_indices);
             cout<<anchor_indices.size()<<" "<<handle_indices.size()<<endl;
-            mesh.Deform(5, static_cast<WEIGHT_TYPE>(weight_type));
+            mesh.Deform(ITER, static_cast<WEIGHT_TYPE>(weight_type));
             break;
         // case 'r':
         //     cout << "The picked point's index is " << currSelectedVertex << ".\n";
